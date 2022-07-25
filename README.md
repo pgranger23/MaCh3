@@ -4,7 +4,7 @@ MaCh3 is ...
 # How to Compile
 
 
-## System Reuqiermers
+## System Requirements
 ```
   GCC: ...
   CMake: ...
@@ -17,7 +17,7 @@ Additional modules
 
 # Code Structure
 
-### MCMCM
+### MCMC
 Heart of MaCh3
 
 ### SamplePDF

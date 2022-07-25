@@ -1,0 +1,506 @@
+#ifndef _samplePDFND_h_
+#define _samplePDFND_h_
+
+// Do we use TF1 or TSpline3* for spline evaluations
+#define USE_TSpline3_red 1
+#define USE_Akima_Spline 2
+#define USE_Truncated_TSpline3 3
+#define USE_Truncated_Akima 4
+#define USE_Monotone_Spline 5
+#define USE_TSpline3 6
+#define USE_TF1 7
+#define USE_TF1_red 8
+
+// Can use:
+//  TSpline3 (third order spline in ROOT)
+//  TSpline3_red (reduced class third order spline in ROOT)
+//  TF1 (fifth order poly in ROOT)
+//  TF1_red (reduced class fifth order poly)
+//  (Experimental) Akima_Spline (crd order spline which is allowed to be discontinuous in 2nd deriv) 
+//  (Experimental) Truncated_Spline (third order root spline but if eval value outside of outer knots, coefficients are set to 0)
+//  (Experimental) Truncated_Akima_Spline (same as Truncated_Spline but uses akima spline interpolation for internal segments)
+
+#define USE_SPLINE USE_TSpline3_red
+
+// Set the __SPLINE_TYPE__ accordingly
+#if USE_SPLINE == USE_TSpline3
+#define __SPLINE_TYPE__ TSpline3
+#elif USE_SPLINE == USE_TSpline3_red
+#define __SPLINE_TYPE__ TSpline3_red
+#elif USE_SPLINE == USE_TF1
+#define __SPLINE_TYPE__ TF1
+#elif USE_SPLINE == USE_TF1_red
+#define __SPLINE_TYPE__ TF1_red
+
+#elif USE_SPLINE == USE_Akima_Spline
+#define __SPLINE_TYPE__ Akima_Spline
+#elif USE_SPLINE == USE_Truncated_TSpline3
+#define __SPLINE_TYPE__ Truncated_Spline
+#elif USE_SPLINE == USE_Truncated_Akima
+#define __SPLINE_TYPE__ Truncated_Akima_Spline
+#elif USE_SPLINE == USE_Monotone_Spline
+#define __SPLINE_TYPE__ Monotone_Spline
+#endif
+
+// Do we want to debug the TF1 treatment? This involves writing TSpline3* and TF1* to file and comparing how well they fit TGraph*
+//#define DEBUG_TF1
+
+#ifdef MULTITHREAD
+#include "omp.h"
+#endif
+
+// C++ includes
+#include <string>
+#include <cmath>
+
+// ROOT include
+#include "TChain.h"
+#include "TStopwatch.h"
+#include "TString.h"
+#include "TMatrixDSym.h"
+#include "TLegend.h"
+#include "TLine.h"
+#include "TSystem.h"
+
+// MaCh3 samplePDF includes
+#include "samplePDFBase.h"
+#include "Structs.h"
+#include "NDMCStruct.h"
+
+// MaCh3 covariance includes
+#include "covariance/covarianceXsec.h"
+
+// Include the manager for an alternate constructor
+#include "manager/manager.h"
+
+ 
+#ifdef DEBUG
+enum kTopology {
+  kUnassigned = 0,
+  kCC0pi_Nu = 1,
+  kCC0pi_Nubar = 2,
+  kCC1pi_Nu = 3,
+  kCC1pi_Nubar = 4,
+  kCCOth_Nu = 5,
+  kCCOth_Nubar = 6,
+  kNC = 7
+};
+#endif
+
+// Make an enum of the test statistic that we're using
+enum TestStatistic {
+  kPoisson,
+  kBarlowBeeston,
+  kIceCube
+};
+
+
+class samplePDFND : public samplePDFBase {
+  public:
+      samplePDFND(manager *FitManager);
+      ~samplePDFND();
+
+      // The different covariance matrices to be associated with the samplePDF
+      void setXsecCov(covarianceXsec * const xs, bool norms = false);
+      covarianceXsec * const GetXsecCov() const { return XsecCov; }
+      //WARNING FIXME TODO T2K specyfic
+      //void setSimpleDetCov(covarianceNDDetPoly * const indet) { NDDetCov = indet; }
+      //covarianceNDDetPoly * const GetSimpleDetCov() const { return NDDetCov; }
+
+      // Function to set the Asimov fake-data from within samplePDF
+      // Put this back in
+      void setAsimovFakeData(bool CustomReWeight = false);
+      void setDataFromFile(std::string &FileName);
+      void setAsimovFakeData_FromFile(std::string &FileName);
+      void setAsimovFakeDataThrow();
+      void setAsimovFakeDataFluctuated(bool CustomReWeight = false);
+
+      double getLikelihood();
+      double getTestStatLLH(double data, double mc, double w2);
+      double getSampleLikelihood(int isample);
+      double getEventRate(int index); 
+
+      // The reweighting functions
+      void reweight(double *oscpar);
+      void reweight(double *oscpar, double *oscpar2) { reweight(oscpar); };
+
+      // DEPRECATED
+      std::vector< std::vector<double> > generate2D(int index);
+      std::vector<double> generate(int index);
+      std::vector<double>* getDataSample() {return NULL;}
+      
+      void addData(std::vector<double> &dat) {return;}
+      void addData(std::vector< vector <double> > &dat) {return;}
+      void addData(TH1D* binneddata){return;}
+      void addData(TH2Poly* binneddata){return;}
+      
+      void addData(std::vector<double> &dat, int index);
+      void addData(std::vector< std::vector <double> > &dat, int index);
+      void addData(TH1D* binneddata, int index);
+      void addData(TH2Poly* binneddata, int index);
+
+      // Randomize the starting position
+      void RandomStart();
+
+      // Provide a setter for the test-statistic
+      void SetTestStatistic(TestStatistic test_stat);
+      std::string TestStatistic_ToString(TestStatistic i);
+      
+      // Getters for the event histograms
+      TH1* getPDF(int Selection);
+      TH1* getData(int Selection) { return (TH1*)datapdfs->At(Selection); };
+      TH2Poly* getW2(int Selection);
+      TH1* getPDFMode(int Selection, int Mode) { return (TH1*)((TObjArray*)samplemodepdfs->At(Selection))->At(Mode); };
+
+      void GetKinVars(int sample, KinematicTypes &TypeX, KinematicTypes &TypeY);
+
+      // Setup the binning for a given sample
+      void SetupBinning(int Selection, std::vector<double> &BinningX, std::vector<double> &BinningY);
+
+      void fillDataFromSamples();
+      void fillReweightingBins();
+
+      virtual void enableModeHistograms();
+
+      void printRates(bool dataonly = false);
+
+      // DEPRECATED
+      std::vector< std::vector <double> > generate2D(TH2Poly* pdf) {std::vector< std::vector <double> > null; return null;}
+      std::vector<double> generate() {std::vector<double> null; return null;}
+
+  protected:
+      // Using TF1 or TSpline3 for spline evaluation?
+      bool tf1;
+
+      //KS: Find Detector bin, hist bin and other useful information using multithreading
+      inline void FindAdditionalInfo();
+      
+      // Helper function to find normalisation bins for normalisation parameters that aren't simply a mode scaling
+      // e.g. different normalisation parameters for carbon and oxygen, neutrino and anti-neutrino, etc
+      inline void FindNormBins();
+
+      //KS: Find pointer for each norm dial to reduce impact of covarianceXsec::calcReweight()
+      inline void FindNormPointer();
+
+      // Make the TChain which connects our psyche events and cross-section model
+      TChain* MakeXsecChain();
+
+      // Reserve spline memory 
+      // Virtual for GPU
+      void ReserveMemory(int nEve);
+
+      inline void LoadSamples();
+
+      // virtual for GPU
+      void SetSplines(TGraph** &xsecgraph, const int i);
+#if USE_SPLINE < USE_TF1
+      void SetSplines_Reduced(TGraph** &xsecgraph, const int i);
+#endif
+      //void SetFunct(TGraph** &xsecgraph, const int);
+
+      // Helper function to check if the covariances have been set
+      inline void CheckCovariances();
+
+      // Redirect std::cout to silence psyche
+      void QuietPlease();
+      void NowTalk();
+
+      /*
+      // DEPRECATED BUT NEEDED BECAUSE OF INHERITANCE, POOP
+      // PLEASE FIX IF YOU HAVE TIME
+      // {
+      double getCovLikelihood() {return 0.0;}
+      double getLikelihood_kernel(std::vector<double> &data) {return 0.0;}
+      void fill1DHist() {return;}
+      void fill2DHist() {return;}
+      // }
+      */
+      // Perform the main reweight loop
+#ifdef MULTITHREAD
+      void ReWeight_MC_MP();
+#else
+      void ReWeight_MC();
+#endif
+      // Prepare weights
+      // virtual for GPU
+      virtual void PrepareWeights();
+
+      virtual void ReconfigureFuncPars(){};
+      virtual void CalcFuncPars(int Event){};
+
+      // Helper function to reset histograms
+      inline void ResetHistograms();
+
+      //Helper which udpate data arrays from histogram
+      inline void UpdateDataPDF();
+
+      // Calculate the cross-section weight for a given event
+      double CalcXsecWeight(const int EventNumber);
+      // Calculate the spline weight for a given event
+      // virtual for GPU
+      virtual double CalcXsecWeight_Spline(const int EventNumber);
+      // Calculate the tf1 weight for a given event
+      //virtual double CalcXsecWeight_Funct(const int EventNumber);
+      // Calculate the spline weight for a given event
+      double CalcXsecWeight_Norm(const int EventNumber);
+
+#ifdef DEBUG
+      // Dump spline information
+      inline void DumpSplines(double xsecw, double detw, int EventNumber);
+      // Print information about the xsec and ndobj structs
+      inline void PrintStructs(double xsecw, double detw, int i);
+#endif
+      bool HaveIRandomStart; // Have I random started?
+
+      //KS:Super hacky to update W2 or not
+      bool firsttime;
+      bool UpdateW2; 
+      // The covariance classes
+      covarianceXsec* XsecCov;
+      covarianceBase* NDDetCov;
+
+      // Use covariance matrix for detector
+      bool simple;
+
+      // This is the number of cross-section splines we're loading
+      // This one is read from setCovMatrix function which looks at the input covariance and counts the number of cross-section splines
+      int nXsecSplines;
+
+      // Number of MC events are there
+      unsigned int nEvents;
+
+      // Contains how many samples we've got
+      __int__ nSamples;
+      //Name of Sample
+      std::vector<std::string> SampleName;
+      // what is the maximum number of bins we have
+      __int__* maxBins;
+
+
+      // Struct containing the cross-section info
+      XSecStruct<__SPLINE_TYPE__*>* xsecInfo;
+
+      // Struct containing the ND280 information
+      std::vector<ND280EVENT> NDEve;
+      std::vector<ND280EVENT_AUXILIARY> NDEve_Aux;
+
+      //WARNING TODO FIXME KS: In many parts ND code is relying on MaCh3 modes let's keep it in this bizarre form
+      int kMaCh3_nModes = 1;
+
+      //WARNING T2K Specyfic
+      /*
+      //KS: Use 2D or 1D Binding Energy
+      bool Use2dEb;
+      
+      // String with what production we want
+      TString *prod;
+
+      bool UseSandMC; //whether to use sand or not
+      //set if you want to use sand or not
+      void setSandMC(bool useSand){ UseSandMC=useSand;};
+      bool UseSandMC; //whether to use sand or not
+      */
+
+      // Dimensions of the ith psyche selection (2D or 1D)
+      int* ndims;
+      // The kinematic type we're plotting
+      KinematicTypes **kinvars;
+      
+      // The pdfs we're storing
+      // MC pdfs
+      TObjArray* samplepdfs;
+      // data pdfs
+      TObjArray* datapdfs;
+      // A vector of TH2Ds to hold the weight^2 for e.g. Barlow Beeston
+      std::vector<TH2Poly*> W2Hist;
+      // mode of MC pdfs
+      TObjArray* samplemodepdfs;
+      //PolyBin for each sample and each Pmu/cosTheta Mu bin, we need this for Eb
+      TH2PolyBin ***polybins;
+    
+      //KS:: We use below only for transfering events from private array but one can imagine reaplaing TH2Poly class just with those double**, as all inofrmation we have stored in MaxBin etc, and other stuff.
+      // The per-thread array
+      double **samplePDF_data_array;
+      double **samplePDF_array;
+      // The per-thread array of weight^2
+      double **samplePDF_w2_array;
+
+#ifdef MULTITHREAD
+      // And the mode
+      double ***samplePDF_mode_array;
+#endif
+
+      TObjArray** modeobjarray;
+      // do we want mode MC pdf to be save
+      bool modepdf;
+
+      // A nice random
+      TRandom3* rand;
+
+      // number of cross-section normalisation params?
+      int nxsec_norm_modes;
+      // Information about the normliastion parameters
+      std::vector<XsecNorms3> xsec_norms;
+
+      // Number of spline parameters
+      int nSplineParams;
+      std::vector<int> splineParsIndex;
+      std::vector<std::string> splineParsNames;
+      std::vector<std::string> splineFileParsNames;
+
+      // Number of spline parameters that aren't repeated
+      int nSplineParamsUniq;
+      std::vector<int> splineParsUniqIndex;
+      std::vector<std::string> splineParsUniqNames;
+
+      // Number of function parameters
+      int nFuncParams;
+      std::vector<int> funcParsIndex;
+      std::vector<std::string> funcParsNames;
+      std::vector<int> FuncParsPos;
+
+      // Bit-field comparison
+      std::vector<int> xsecBitField;
+      std::vector<int> linearsplines;
+
+      // Array of FastSplineInfo structs: keeps information on each xsec spline for fast evaluation
+      // Method identical to TSpline3::Eval(double) but faster because less operations
+#if USE_SPLINE < USE_TF1
+      FastSplineInfo *SplineInfoArray;
+      template <class T> 
+        double FastSplineEval(T* spline, const int SplineNumber);
+      void FindSplineSegment();
+#endif
+
+#ifdef DEBUG_TF1
+      TFile *dumpfile;
+#endif
+
+      // Pointer to fit manager
+      manager *FitManager;
+  private:
+
+      int getValue();
+      int parseLine(char* line);
+      std::streambuf *buf; // Keep the cout buffer
+      std::streambuf *errbuf; // Keep the cerr buffer
+
+      TestStatistic fTestStatistic;
+#if DEBUG > 0
+      unsigned int nEventsInTree;
+      // Vector of POT weights needed for pot+xsec weights
+      std::vector<double> POTWeights;
+
+      // 2D histograms which match BANFF's numbers
+      std::vector<TH2Poly*> MCOnly;
+      std::vector<TH2Poly*> POTOnly;
+      std::vector<TH2Poly*> FluxOnly;
+      std::vector<TH2Poly*> XsecOnly;
+      std::vector<TH2Poly*> DetOnly;
+      std::vector<TH2Poly*> NDCovOnly;
+      std::vector<TH2Poly*> AllOnly;
+
+      // TH1D which matches NuMu group's binning
+      std::vector<TH1D*> NuMuPmu;
+
+      // Events per normalisation parameter
+      std::vector<unsigned int> EventsPerNorm;
+      // Events per normalisation mode
+      std::vector<unsigned int> EventsPerMode;
+#endif
+
+};
+
+#if USE_SPLINE < USE_TF1
+// ***************************************************************************
+// Fast spline evaluation
+// Inspired by TSpline3::Eval, which we can speed up considerably
+// Main reason is that we know that for one parameter (e.g. MAQE) we will have the same number of points, x min, xmax, etc for all MAQE splines, so we can signficantly reduce number of operations
+// The curious can find very similar GPU code in splines/gpuSplineUtils.cu and CPU code in spline/SplineMonolith.cpp::Eval
+// I've included it here for more transparency: this kind of eval should be possible for SK splines too
+template <class T>
+double samplePDFND::FastSplineEval(T* spline, const int SplineNumber) {
+  // ***************************************************************************
+
+  // Check if the spline is NULL
+  if (spline == NULL) return 1.0;
+
+  // The segment has already been found in FindSplineSegment()
+  int segment = SplineInfoArray[SplineNumber].CurrSegment;
+
+  //KS: Each spline segment is described by 3rd order polynomial which has the following form:
+  //f(xvar) = weight = d*dx(xvar)^3 + c*dx(xvar)^2 + b*dx(xvar) + y, 
+  //where dx(xvar) = xvar - x 
+  //This is the meaning of coefficients that we can extract from spline segment
+  double x = -999.99;
+  double y = -999.99;
+  double b = -999.99;
+  double c = -999.99;
+  double d = -999.99;
+
+  // Now write the coefficients
+  spline->GetCoeff(segment, x, y, b, c, d);
+
+  // Get the variation for this reconfigure for the ith parameter
+
+  double xvar = XsecCov->calcReWeight(splineParsIndex[SplineNumber]);
+
+  // The Delta(x)
+  double dx = xvar - x;
+
+  // The spline weight to return
+  double weight = y+dx*(b+dx*(c+d*dx));
+
+  // Check that eval on the TSpline3 is the same as our weight
+#ifdef DEBUG
+  int GlobalIndex = splineParsIndex[SplineNumber];
+  // Difference between eval and weight
+  double diff = fabs(spline->Eval(XsecCov->calcReWeight(GlobalIndex)) - weight);
+
+  if (diff > 1.E-7) {
+
+    std::cerr << "TSpline3->Eval() != custom eval: Something is wrong with FastSplineEval!" << std::endl;
+    std::cerr << "Difference in spline evaluation > 1.E-5!" << std::endl;
+
+    std::cerr << "Eval      = " << spline->Eval(XsecCov->calcReWeight(GlobalIndex)) << std::endl;
+    std::cerr << "Cust      = " << weight << std::endl;
+    std::cerr << "diff      = " << diff << std::endl;
+    std::cerr << "param     = " << splineParsNames[SplineNumber] << std::endl;
+    std::cerr << "variation = " << XsecCov->calcReWeight(GlobalIndex) << std::endl;
+    std::cerr << "paramVal  = " << XsecCov->getParProp(GlobalIndex) << std::endl;
+
+    // Check we've found the right segment
+    int klow = spline->FindX(xvar);
+    if (klow >= spline->GetNp()-1 && spline->GetNp() > 1) klow = spline->GetNp()-2;
+
+    std::cerr << "segment   = " << segment << std::endl;
+    std::cerr << "spl segm  = " << klow << std::endl;
+    std::cerr << "nPoints   = " << SplineInfoArray[SplineNumber].nPts << std::endl;
+    std::cerr << "nPoints sp= " << spline->GetNp() << std::endl;
+
+
+    std::cerr << "Printing x information:" << std::endl;
+    for (int i = 0; i < SplineInfoArray[SplineNumber].nPts; ++i) {
+      std::cerr << "   " << i << " = " << SplineInfoArray[SplineNumber].xPts[i] << std::endl;
+    }
+    std::cerr << "From spline: " << std::endl;
+    for (int i = 0; i < spline->GetNp(); ++i) {
+      double xtmp, ytmp;
+      spline->GetKnot(i, xtmp, ytmp);
+      std::cerr << "   " << i << " = " << xtmp << std::endl;
+    }
+
+    if (klow != segment) {
+      std::cerr << "Have found wrong segment in FindSplineSegment!" << std::endl;
+      std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+      throw;
+    }
+
+    std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+    throw;
+  }
+#endif
+  return weight;
+}
+#endif
+#endif

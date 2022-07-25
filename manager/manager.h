@@ -49,6 +49,9 @@ class manager {
   const char *GetOutputFilename() { return (const char*)output_file.c_str(); }
 
   int GetMCStatLLH() { return mc_stat_llh; }
+  int GetUpdateW2() { return UpdateW2; }
+
+  bool getPlotByMode() { return PlotByMode; }
 
   double GetPOT()       { return protons_on_target; }
   double GetNubarPOT()  { return nubar_protons_on_target; }
@@ -357,8 +360,14 @@ class manager {
   // What PCA threshold we apply for ND280
   double pca_threshold;
 
-  // Apply Barlow Beeston
+  // Apply Barlow Beeston/Ice Cube or Poisson
   int mc_stat_llh;
+
+  //Whether you want to update W2 in Likelihood calcaution
+  int UpdateW2;
+
+  // Mode by mode plots
+  bool PlotByMode;
 
   // Variables to read in sample config files
   // these are thnigs that typically need to be used in samplePDF

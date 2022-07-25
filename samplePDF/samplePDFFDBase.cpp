@@ -155,7 +155,7 @@ void samplePDFFDBase::reweight(double *oscpar) // Reweight function (this should
   //KS: Reset the histograms before reweight 
   ResetHistograms();
   
-  fillArray();
+  ReWeight_MC();
 
   return;
 }
@@ -170,7 +170,7 @@ void samplePDFFDBase::reweight(double *oscpar_nub, double *oscpar_nu) // Reweigh
   //KS: Reset the histograms before reweight
   ResetHistograms();
 
-  fillArray();
+  ReWeight_MC();
 }
 
 double samplePDFFDBase::calcOscWeights(int nutype, int oscnutype, double en, double *oscpar)
@@ -201,17 +201,17 @@ double samplePDFFDBase::calcOscWeights(int nutype, int oscnutype, double en, dou
 //This function takes advantage of most of the things called in setupSKMC to reduce reweighting time
 //It also follows the ND code reweighting pretty closely
 //This function fills the samplePDFFD_array array which is binned to match the sample binning, such that bin[1][1] is the equivalent of _hPDF2D->GetBinContent(2,2) {Noticing the offset}
-void samplePDFFDBase::fillArray() {
+void samplePDFFDBase::ReWeight_MC() {
 
   //DB Reset which cuts to apply
   Selection = StoredSelection;
 
   // Call entirely different routine if we're running with openMP
 #ifdef MULTITHREAD
-  fillArray_MP();
+  ReWeight_MC_MP();
 #else
 
-  reconfigureFuncPars();
+  ReconfigureFuncPars();
 
   for (int iSample=0;iSample<(int)MCSamples.size();iSample++) {
     MCSamples[iSample].splineFile->FindSplineSegment();
@@ -342,12 +342,12 @@ void samplePDFFDBase::fillArray() {
 }
 
 #ifdef MULTITHREAD
-void samplePDFFDBase::fillArray_MP() {
+void samplePDFFDBase::ReWeight_MC_MP() {
 
   int nXBins = XBinEdges.size()-1;
   int nYBins = YBinEdges.size()-1;
 
-  reconfigureFuncPars();
+  ReconfigureFuncPars();
 
   //DB Unfortunately need to have this because OMP doesn't allow member variables to be used in the shared environment
   //At end of function, copy contents of 'samplePDFFD_array_class' into 'samplePDFFD_array' which can then be used in getLikelihood

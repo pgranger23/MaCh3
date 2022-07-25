@@ -42,6 +42,14 @@ manager::~manager() {
 // This is Getting pretty huge by now!
 int manager::readConfig(char *config) {
 
+    std::ifstream infile(config);
+    if (!infile.good())
+    {
+      std::cerr <<"Config you provided doesn't exist" << std::endl;
+      std::cerr <<"Plese check if name is correct" << std::endl;
+      return(EXIT_FAILURE);
+   }
+
   // Create the libconfig object
   libconfig::Config cfg;
   // Could turn on automatic type conversion in the future, but could be a bad idea..
@@ -118,6 +126,12 @@ int manager::readConfig(char *config) {
       if (verbosity) std::cout << "- MC stat test statistic not specified, using Poisson" << std::endl;
     }
 
+    if (cfg.exists("USE_UpdateW2")) {
+      UpdateW2 = cfg.lookup("USE_UpdateW2");
+    } else {
+      UpdateW2 = true;
+    }
+
     // Stepping scale for nuisance parameters
     if (cfg.exists("STEPSCALE")) {
       step_scale = cfg.lookup("STEPSCALE");
@@ -175,6 +189,13 @@ int manager::readConfig(char *config) {
     } else {
       pca_threshold = -1;
       if (verbosity) std::cout << "- no PCA threshold specified, setting to -1" << std::endl;
+    }
+
+    // Plot by mode?
+    if (cfg.exists("PLOT_BY_MODE")) {
+      PlotByMode = cfg.lookup("PLOT_BY_MODE");
+    } else {
+      PlotByMode = false;
     }
 
     // Debug / Summary info

@@ -56,7 +56,14 @@ class covarianceBase {
   void setParameters(std::vector<double> pars = std::vector<double>());    
   virtual void setEvalLikelihood(int i, bool eL);
   void setDoStep(int i, bool doStep) { fParDoStep[i] = doStep; }
-  
+
+  double calcReWeight(int bin){
+    if (bin >= 0 && bin < size) {
+      return fParProp[bin];
+    }
+    return 1;
+  }
+
   // set branches for output file
   void setBranches(TTree &tree);
   void setStepScale(double scale);

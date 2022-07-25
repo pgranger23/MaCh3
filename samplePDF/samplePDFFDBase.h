@@ -144,7 +144,10 @@ public:
   //DB Function which determines if an event is selected, where Selection double looks like {{ND280KinematicTypes Var1, douuble LowBound},{{ND280KinematicTypes Var2, douuble LowBound, double UpBound},..}
   bool IsEventSelected(int iSample, int iEvent);
   bool IsEventSelected(std::vector< std::vector<double> > &Selection, int iSample, int iEvent);
-  virtual void reconfigureFuncPars(){};
+
+  virtual void ReconfigureFuncPars(){};
+  virtual void CalcFuncPars(int Event){};
+
   virtual double calcFuncSystWeight(int iSample, int iEvent) = 0;
 
   virtual double ReturnKinematicParameter(KinematicTypes Var, int i, int j) = 0;       //Returns parameter Var for event j in sample i
@@ -161,9 +164,9 @@ public:
 
   //DB Nice new multi-threaded function which calculates the event weights and fills the relevant bins of an array
 #ifdef MULTITHREAD
-  void fillArray_MP();
+  void ReWeight_MC_MP();
 #endif
-  void fillArray();
+  void ReWeight_MC();
 
   // Helper function to reset histograms
   inline void ResetHistograms();

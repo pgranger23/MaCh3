@@ -1,5 +1,6 @@
 set(SamplePDF_implementation_files 
 	samplePDFBase.cpp 
+	samplePDFNDBase.cpp 
 	samplePDFFDBase.cpp 
 	interfacePDFEbE.cpp 
 	Structs.cpp
@@ -8,6 +9,7 @@ set(SamplePDF_implementation_files
 
 set(SamplePDF_header_files 
 	samplePDFBase.h
+	samplePDFNDBase.h
 	samplePDFFDBase.h
 	interfacePDFEbE.h
 	Structs.h )

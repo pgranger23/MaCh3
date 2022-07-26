@@ -1306,6 +1306,38 @@ enum NuPDG {
   kNue_bar = -12
 };
 
+// Make an enum of the test statistic that we're using
+enum TestStatistic {
+  kPoisson,
+  kBarlowBeeston,
+  kIceCube
+};
+
+// **************************************************
+// Convert a LLH type to a string
+inline std::string TestStatistic_ToString(TestStatistic i) {
+// **************************************************
+    std::string name = "";
+
+    switch(i) {
+        case kPoisson:
+        name = "Poisson";
+        break;
+        case kBarlowBeeston:
+        name = "BarlowBeeston";
+        break;
+        case kIceCube:
+        name = "IceCube";
+        break;
+        default:
+            std::cerr << "UNKNOWN LIKELHOOD SPECIFIED TO ND280!" << std::endl;
+            std::cerr << "You gave test-statistic " << i << std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+            throw;
+    }
+    return name;
+}
+
 // Helper function for calculating unbinned Integral of TH2Poly i.e including overflow
 double OverflowIntegral(TH2Poly*);
 
@@ -1324,7 +1356,6 @@ TH2Poly* PolyScaleWidth(TH2Poly *Histogram, double scale);
 // Helper to calc integral of th2poly analogous to th2d integra; with option "width"
 double PolyIntegralWidth(TH2Poly *Histogram);
 
-
 inline double returnCherenkovThresholdMomentum(int PDG);
 inline double CalculateQ2(double PLep, double PUpd, double EnuTrue, double InitialQ2 = 0.0);
 inline double CalculateEnu(double PLep, double cosTheta, double EB, bool neutrino);
@@ -1342,4 +1373,10 @@ inline std::string file_exists(std::string filename) {
 
   return filename;
 }
+
+int GetMaCh3Modes();
+
+inline int getValue();
+inline int parseLine(char* line);
+
 #endif

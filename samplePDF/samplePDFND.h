@@ -74,35 +74,17 @@
 #include "manager/manager.h"
 
  
-#ifdef DEBUG
-enum kTopology {
-  kUnassigned = 0,
-  kCC0pi_Nu = 1,
-  kCC0pi_Nubar = 2,
-  kCC1pi_Nu = 3,
-  kCC1pi_Nubar = 4,
-  kCCOth_Nu = 5,
-  kCCOth_Nubar = 6,
-  kNC = 7
-};
-#endif
-
-// Make an enum of the test statistic that we're using
-enum TestStatistic {
-  kPoisson,
-  kBarlowBeeston,
-  kIceCube
-};
-
 
 class samplePDFND : public samplePDFBase {
   public:
       samplePDFND(manager *FitManager);
       ~samplePDFND();
 
+      //KS: Each experiment uses some specyfic variables, make template fucnion for it
+      void InitExperimentSpecific();
+
       // The different covariance matrices to be associated with the samplePDF
       void setXsecCov(covarianceXsec * const xs, bool norms = false);
-      covarianceXsec * const GetXsecCov() const { return XsecCov; }
       //WARNING FIXME TODO T2K specyfic
       //void setSimpleDetCov(covarianceNDDetPoly * const indet) { NDDetCov = indet; }
       //covarianceNDDetPoly * const GetSimpleDetCov() const { return NDDetCov; }
@@ -125,9 +107,9 @@ class samplePDFND : public samplePDFBase {
       void reweight(double *oscpar, double *oscpar2) { reweight(oscpar); };
 
       // DEPRECATED
-      std::vector< std::vector<double> > generate2D(int index);
-      std::vector<double> generate(int index);
-      std::vector<double>* getDataSample() {return NULL;}
+      //std::vector< std::vector<double> > generate2D(int index);
+      //std::vector<double> generate(int index);
+      //std::vector<double>* getDataSample() {return NULL;}
       
       void addData(std::vector<double> &dat) {return;}
       void addData(std::vector< vector <double> > &dat) {return;}
@@ -141,16 +123,14 @@ class samplePDFND : public samplePDFBase {
 
       // Randomize the starting position
       void RandomStart();
-
-      // Provide a setter for the test-statistic
-      void SetTestStatistic(TestStatistic test_stat);
-      std::string TestStatistic_ToString(TestStatistic i);
       
       // Getters for the event histograms
       TH1* getPDF(int Selection);
       TH1* getData(int Selection) { return (TH1*)datapdfs->At(Selection); };
       TH2Poly* getW2(int Selection);
       TH1* getPDFMode(int Selection, int Mode) { return (TH1*)((TObjArray*)samplemodepdfs->At(Selection))->At(Mode); };
+
+      std::string getSampleName(int Selection){ return SampleName[Selection]; };
 
       void GetKinVars(int sample, KinematicTypes &TypeX, KinematicTypes &TypeY);
 
@@ -164,14 +144,7 @@ class samplePDFND : public samplePDFBase {
 
       void printRates(bool dataonly = false);
 
-      // DEPRECATED
-      std::vector< std::vector <double> > generate2D(TH2Poly* pdf) {std::vector< std::vector <double> > null; return null;}
-      std::vector<double> generate() {std::vector<double> null; return null;}
-
   protected:
-      // Using TF1 or TSpline3 for spline evaluation?
-      bool tf1;
-
       //KS: Find Detector bin, hist bin and other useful information using multithreading
       inline void FindAdditionalInfo();
       
@@ -181,9 +154,6 @@ class samplePDFND : public samplePDFBase {
 
       //KS: Find pointer for each norm dial to reduce impact of covarianceXsec::calcReweight()
       inline void FindNormPointer();
-
-      // Make the TChain which connects our psyche events and cross-section model
-      TChain* MakeXsecChain();
 
       // Reserve spline memory 
       // Virtual for GPU
@@ -201,20 +171,6 @@ class samplePDFND : public samplePDFBase {
       // Helper function to check if the covariances have been set
       inline void CheckCovariances();
 
-      // Redirect std::cout to silence psyche
-      void QuietPlease();
-      void NowTalk();
-
-      /*
-      // DEPRECATED BUT NEEDED BECAUSE OF INHERITANCE, POOP
-      // PLEASE FIX IF YOU HAVE TIME
-      // {
-      double getCovLikelihood() {return 0.0;}
-      double getLikelihood_kernel(std::vector<double> &data) {return 0.0;}
-      void fill1DHist() {return;}
-      void fill2DHist() {return;}
-      // }
-      */
       // Perform the main reweight loop
 #ifdef MULTITHREAD
       void ReWeight_MC_MP();
@@ -239,8 +195,6 @@ class samplePDFND : public samplePDFBase {
       // Calculate the spline weight for a given event
       // virtual for GPU
       virtual double CalcXsecWeight_Spline(const int EventNumber);
-      // Calculate the tf1 weight for a given event
-      //virtual double CalcXsecWeight_Funct(const int EventNumber);
       // Calculate the spline weight for a given event
       double CalcXsecWeight_Norm(const int EventNumber);
 
@@ -252,19 +206,12 @@ class samplePDFND : public samplePDFBase {
 #endif
       bool HaveIRandomStart; // Have I random started?
 
-      //KS:Super hacky to update W2 or not
-      bool firsttime;
-      bool UpdateW2; 
       // The covariance classes
-      covarianceXsec* XsecCov;
       covarianceBase* NDDetCov;
-
-      // Use covariance matrix for detector
-      bool simple;
 
       // This is the number of cross-section splines we're loading
       // This one is read from setCovMatrix function which looks at the input covariance and counts the number of cross-section splines
-      int nXsecSplines;
+      __int__ nXsecSplines;
 
       // Number of MC events are there
       unsigned int nEvents;
@@ -276,16 +223,12 @@ class samplePDFND : public samplePDFBase {
       // what is the maximum number of bins we have
       __int__* maxBins;
 
-
       // Struct containing the cross-section info
       XSecStruct<__SPLINE_TYPE__*>* xsecInfo;
 
       // Struct containing the ND280 information
       std::vector<ND280EVENT> NDEve;
       std::vector<ND280EVENT_AUXILIARY> NDEve_Aux;
-
-      //WARNING TODO FIXME KS: In many parts ND code is relying on MaCh3 modes let's keep it in this bizarre form
-      int kMaCh3_nModes = 1;
 
       //WARNING T2K Specyfic
       /*
@@ -299,6 +242,8 @@ class samplePDFND : public samplePDFBase {
       //set if you want to use sand or not
       void setSandMC(bool useSand){ UseSandMC=useSand;};
       bool UseSandMC; //whether to use sand or not
+      // Use covariance matrix for detector
+      bool simple;
       */
 
       // Dimensions of the ith psyche selection (2D or 1D)
@@ -333,9 +278,7 @@ class samplePDFND : public samplePDFBase {
       TObjArray** modeobjarray;
       // do we want mode MC pdf to be save
       bool modepdf;
-
-      // A nice random
-      TRandom3* rand;
+      int nModes;
 
       // number of cross-section normalisation params?
       int nxsec_norm_modes;
@@ -357,7 +300,6 @@ class samplePDFND : public samplePDFBase {
       int nFuncParams;
       std::vector<int> funcParsIndex;
       std::vector<std::string> funcParsNames;
-      std::vector<int> FuncParsPos;
 
       // Bit-field comparison
       std::vector<int> xsecBitField;
@@ -378,14 +320,7 @@ class samplePDFND : public samplePDFBase {
 
       // Pointer to fit manager
       manager *FitManager;
-  private:
 
-      int getValue();
-      int parseLine(char* line);
-      std::streambuf *buf; // Keep the cout buffer
-      std::streambuf *errbuf; // Keep the cerr buffer
-
-      TestStatistic fTestStatistic;
 #if DEBUG > 0
       unsigned int nEventsInTree;
       // Vector of POT weights needed for pot+xsec weights
@@ -408,7 +343,6 @@ class samplePDFND : public samplePDFBase {
       // Events per normalisation mode
       std::vector<unsigned int> EventsPerMode;
 #endif
-
 };
 
 #if USE_SPLINE < USE_TF1
@@ -420,7 +354,7 @@ class samplePDFND : public samplePDFBase {
 // I've included it here for more transparency: this kind of eval should be possible for SK splines too
 template <class T>
 double samplePDFND::FastSplineEval(T* spline, const int SplineNumber) {
-  // ***************************************************************************
+// ***************************************************************************
 
   // Check if the spline is NULL
   if (spline == NULL) return 1.0;

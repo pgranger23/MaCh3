@@ -165,9 +165,9 @@ public:
   //DB Nice new multi-threaded function which calculates the event weights and fills the relevant bins of an array
 #ifdef MULTITHREAD
   void ReWeight_MC_MP();
-#endif
+#else
   void ReWeight_MC();
-
+#endif
   // Helper function to reset histograms
   inline void ResetHistograms();
       
@@ -213,8 +213,6 @@ public:
   //===============================================================================
   //DB Covariance Objects
   //covarianceSkDet_joint *skdet_joint;
-  //ETA -  need to think about this? All experiments will need an xsec, det and osc cov
-  covarianceXsec *xsecCov;
   //===============================================================================
   //
 

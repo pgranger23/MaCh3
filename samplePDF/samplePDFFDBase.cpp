@@ -13,7 +13,7 @@ samplePDFFDBase::samplePDFFDBase(double pot, std::string mc_version, covarianceX
   //ETA - safety feature so you can't pass a NULL xsec_cov
   if(xsec_cov == NULL){std::cerr << "[ERROR:] You've passed me a NULL xsec covariance matrix... I need this to setup splines!" << std::endl; throw;}
 
-  init(pot, mc_version, xsec_cov);          
+  init(pot, mc_version, xsec_cov);
 
   bNu = new BargerPropagator();
   bNu->UseMassEigenstates(false);
@@ -34,7 +34,15 @@ samplePDFFDBase::samplePDFFDBase(double pot, std::string mc_version, covarianceX
 
 samplePDFFDBase::~samplePDFFDBase()
 {
-
+    std::cout << "Destroying samplePDFFD object" << std::endl;
+    int nYBins = YBinEdges.size()-1;
+    for (int yBin = 0 ;yBin < nYBins; yBin++)
+    {
+      delete[] samplePDFFD_array[yBin];
+      delete[] samplePDFFD_data[yBin];
+    }
+    delete[] samplePDFFD_array;
+    delete[] samplePDFFD_data;
 }
 
 void samplePDFFDBase::fill1DHist()
@@ -155,7 +163,12 @@ void samplePDFFDBase::reweight(double *oscpar) // Reweight function (this should
   //KS: Reset the histograms before reweight 
   ResetHistograms();
   
+  // Call entirely different routine if we're running with openMP
+  #ifdef MULTITHREAD
+  ReWeight_MC_MP();
+  #else
   ReWeight_MC();
+  #endif
 
   return;
 }
@@ -170,7 +183,12 @@ void samplePDFFDBase::reweight(double *oscpar_nub, double *oscpar_nu) // Reweigh
   //KS: Reset the histograms before reweight
   ResetHistograms();
 
+  // Call entirely different routine if we're running with openMP
+  #ifdef MULTITHREAD
+  ReWeight_MC_MP();
+  #else
   ReWeight_MC();
+  #endif
 }
 
 double samplePDFFDBase::calcOscWeights(int nutype, int oscnutype, double en, double *oscpar)
@@ -197,19 +215,13 @@ double samplePDFFDBase::calcOscWeights(int nutype, int oscnutype, double en, dou
     }
 }
 
+
+#ifndef MULTITHREAD
 //DB Function which does the core reweighting. This assumes that oscillation weights have already been calculated and stored in samplePDFFDBase[iSample].osc_w[iEvent]
 //This function takes advantage of most of the things called in setupSKMC to reduce reweighting time
 //It also follows the ND code reweighting pretty closely
 //This function fills the samplePDFFD_array array which is binned to match the sample binning, such that bin[1][1] is the equivalent of _hPDF2D->GetBinContent(2,2) {Noticing the offset}
 void samplePDFFDBase::ReWeight_MC() {
-
-  //DB Reset which cuts to apply
-  Selection = StoredSelection;
-
-  // Call entirely different routine if we're running with openMP
-#ifdef MULTITHREAD
-  ReWeight_MC_MP();
-#else
 
   ReconfigureFuncPars();
 
@@ -336,13 +348,13 @@ void samplePDFFDBase::ReWeight_MC() {
 
     }
   }
-
-#endif // end the else in openMP
   return;
 }
-
-#ifdef MULTITHREAD
+#else
 void samplePDFFDBase::ReWeight_MC_MP() {
+
+  //DB Reset which cuts to apply
+  Selection = StoredSelection;
 
   int nXBins = XBinEdges.size()-1;
   int nYBins = YBinEdges.size()-1;
@@ -591,16 +603,16 @@ void samplePDFFDBase::ResetHistograms() {
 //ETA
 void samplePDFFDBase::setXsecCov(covarianceXsec *xsec){
 
-  xsecCov = xsec;
+  XsecCov = xsec;
 
   // Get the map between the normalisation parameters index, their name, what mode they should apply to, and what target
   //This information is used later in calcXsecNormsBins to decide if a parameter applies to an event
 
   //DB Now get this information using the DetID from the config
-  xsec_norms = xsecCov->GetNormParsFromDetID(SampleDetID);
-  nFuncParams = xsecCov->GetNumFuncParamsFromDetID(SampleDetID);
-  funcParsNames = xsecCov->GetFuncParsNamesFromDetID(SampleDetID);
-  funcParsIndex = xsecCov->GetFuncParsIndexFromDetID(SampleDetID);
+  xsec_norms = XsecCov->GetNormParsFromDetID(SampleDetID);
+  nFuncParams = XsecCov->GetNumFuncParamsFromDetID(SampleDetID);
+  funcParsNames = XsecCov->GetFuncParsNamesFromDetID(SampleDetID);
+  funcParsIndex = XsecCov->GetFuncParsIndexFromDetID(SampleDetID);
 
   return;
 }
@@ -970,10 +982,10 @@ void samplePDFFDBase::setupSplines(fdmc_base *fdobj, const char *splineFile, int
   std::cout << "Using 2020 splines" << std::endl;
   if (BinningOpt == 0){ // Splines binned in erec
 	if (signal){
-	  fdobj->splineFile = new splineFDBase((char*)splineFile, nutype, nevents, SampleDetID, xsecCov);
+	  fdobj->splineFile = new splineFDBase((char*)splineFile, nutype, nevents, SampleDetID, XsecCov);
 	}
 	else{
-	  fdobj->splineFile = new splineFDBase((char*)splineFile, nutype, nevents, SampleDetID, xsecCov);
+	  fdobj->splineFile = new splineFDBase((char*)splineFile, nutype, nevents, SampleDetID, XsecCov);
 	  if (!(nutype==1 || nutype==-1 || nutype==2 || nutype==-2)){
 		std::cerr << "problem setting up splines in erec" << std::endl;
 	  }
@@ -981,7 +993,7 @@ void samplePDFFDBase::setupSplines(fdmc_base *fdobj, const char *splineFile, int
   }
   else{ // Splines binned in 2D
 	std::cout << "Creating splineFDBase" << std::endl;
-	fdobj->splineFile = new splineFDBase((char*)splineFile, nutype, nevents, (double)BinningOpt, SampleDetID, xsecCov);
+	fdobj->splineFile = new splineFDBase((char*)splineFile, nutype, nevents, (double)BinningOpt, SampleDetID, XsecCov);
 	if (!(nutype==1 || nutype==-1 || nutype==2 || nutype==-2)) {
 	  std::cerr << "problem setting up splines in erec" << std::endl;
 	} 

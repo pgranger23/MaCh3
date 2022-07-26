@@ -25,8 +25,7 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
 #endif
   // Save a pointer to the manager
   FitManager = Manager;
-  // Include making distributions by mode?
-  modepdf = false;
+
   // Random start
   HaveIRandomStart = false;
 
@@ -45,17 +44,22 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   XsecCov    = NULL;
   
   // A nice random number to use at our leisure (seeded on TIME)
-  rand = new TRandom3(0);
+  rnd = new TRandom3(0);
   // Do we care about the MC pdfs by mode
   samplepdfs  = new TObjArray(0);
 
   // Holds the data pdfs
   datapdfs    = new TObjArray(0);
   
+  // Include making distributions by mode?
+  modepdf = false;
   // Holds the MC pdfs by mode
   samplemodepdfs = NULL;
   modeobjarray = NULL;
-  
+
+  nModes = 0;
+  nModes = GetMaCh3Modes();
+
   ndims = NULL;
   kinvars = NULL;
    
@@ -70,7 +74,95 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   // Then load the samples
   LoadSamples();
   
-  //WARNING FIXME TODO some T2K specyfic
+  // Enable the mode histograms AFTER addSelection is called
+  if (FitManager->getPlotByMode()) enableModeHistograms();
+
+  InitExperimentSpecific();
+
+  // Check the preprocessors that have been defined
+  // Can currently only run in verbose DEBUG mode in single thread
+#if DEBUG > 0
+    #ifdef MULTITHREAD
+    #pragma omp parallel
+   {
+    #pragma omp critical
+     if (omp_get_num_threads() != 1) {
+       std::cerr << "I'm running in DEBUG on multiple threads, this won't work" << std::endl;
+       std::cerr << "export OMP_NUM_THREADS=1 and try again please!" << std::endl;
+       throw;
+     }
+    #endif
+   }
+#endif
+}
+
+// ***************************************************************************
+// Destructor
+samplePDFND::~samplePDFND() {
+// ***************************************************************************
+  std::cout << "Destroying samplePDFND object" << std::endl;
+  for(__int__ i = 0; i < nSamples; i++)
+  {
+    if (samplepdfs->At(i) == NULL) continue;
+    for(__int__ j = 0; j < maxBins[i]; j++)
+    {
+        delete polybins[i][j];
+    }
+    delete[] polybins[i];
+    delete W2Hist[i];
+    delete[] kinvars[i];;
+  }
+
+   // Delete the master array
+   for (__int__ i = 0; i < nSamples; i++)
+   {
+     delete[] samplePDF_data_array[i];
+     delete[] samplePDF_array[i];
+     delete[] samplePDF_w2_array[i];
+   }
+   delete[] samplePDF_data_array;
+   delete[] samplePDF_array;
+   delete[] samplePDF_w2_array;
+#ifdef MULTITHREAD
+   // Delete the master mode array
+   if (modepdf) {
+     for (__int__ i = 0; i < nSamples; i++) {
+       for (__int__ j = 0; j < nModes+1; j++) {
+         delete[] samplePDF_mode_array[i][j];
+       }
+       delete[] samplePDF_mode_array[i];
+     }
+     delete[] samplePDF_mode_array;
+   }
+#endif
+   
+  delete rnd;
+  delete samplepdfs;
+  delete datapdfs;
+
+  if(modepdf)
+  {
+      delete samplemodepdfs;
+      delete[] modeobjarray;
+  }
+
+  delete[] xsecInfo;
+  delete[] maxBins;
+  delete[] ndims;
+  delete[] kinvars;
+  delete[] polybins;
+  delete FitManager;
+
+  if (XsecCov)  delete XsecCov;
+  if (NDDetCov) delete NDDetCov;
+}
+
+// ***************************************************************************
+//KS: Each experiment uses some specyfic variables, make template function for it
+void samplePDFND::InitExperimentSpecific() {
+// ***************************************************************************
+
+  //WARNING FIXME TODO This is for the time being
   /*
   // What production we're using
   TString production = FitManager->getNDRuns();
@@ -104,103 +196,22 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   // Do we really need a new here? Surely setting the string should be fine
   // Warning, something does indeed break, investigate this in the future
   prod = new TString(production);
-  */
-  // Enable the mode histograms AFTER addSelection is called
-  if (FitManager->getPlotByMode()) {
-    enableModeHistograms();
-  }
-  
+
   if (std::getenv("NIWG_ROOT") == NULL) {
     std::cerr << "Need NIWG environment variable to run with Eb" << std::endl;
     std::cerr << "EXPORT NIWG to your NIWGReWeight environment" << std::endl;
     throw;
   }
-  
-  // Check the preprocessors that have been defined
-  // Can currently only run in verbose DEBUG mode in single thread
-#if DEBUG > 0
-    #ifdef MULTITHREAD
-    #pragma omp parallel
-   {
-    #pragma omp critical
-     if (omp_get_num_threads() != 1) {
-       std::cerr << "I'm running in DEBUG on multiple threads, this won't work" << std::endl;
-       std::cerr << "export OMP_NUM_THREADS=1 and try again please!" << std::endl;
-       throw;
-     }
-    #endif
-   }
-#endif
-}
-
-// ***************************************************************************
-// Empty destructor
-samplePDFND::~samplePDFND() {
-// ***************************************************************************
-  std::cout << "Destroying samplePDFND object" << std::endl;
-  for(__int__ i = 0; i < nSamples; i++)
-  {
-    if (samplepdfs->At(i) == NULL) continue;
-    for(__int__ j = 0; j < maxBins[i]; j++)
-    {
-        delete polybins[i][j];
-    }
-    delete[] polybins[i];
-    delete W2Hist[i];
-    delete[] kinvars[i];;
-  }
-
-   // Delete the master array
-   for (__int__ i = 0; i < nSamples; i++)
-   {
-     delete[] samplePDF_data_array[i];
-     delete[] samplePDF_array[i];
-     delete[] samplePDF_w2_array[i];
-   }
-   delete[] samplePDF_data_array;
-   delete[] samplePDF_array;
-   delete[] samplePDF_w2_array;
-#ifdef MULTITHREAD
-   // Delete the master mode array
-   if (modepdf) {
-     for (__int__ i = 0; i < nSamples; i++) {
-       for (__int__ j = 0; j < kMaCh3_nModes+1; j++) {
-         delete[] samplePDF_mode_array[i][j];
-       }
-       delete[] samplePDF_mode_array[i];
-     }
-     delete[] samplePDF_mode_array;
-   }
-#endif
-   
-  delete rand;
-  delete samplepdfs;
-  delete datapdfs;
-
-  if(modepdf)
-  {
-      delete samplemodepdfs;
-      delete[] modeobjarray;
-  }
-
-  delete[] xsecInfo;
-  delete[] maxBins;
-  delete[] ndims;
-  delete[] kinvars;
-  delete[] polybins;
-  delete FitManager;
-
-  if (XsecCov)  delete XsecCov;
-  if (NDDetCov) delete NDDetCov;
+  */
 }
 
 // ***************************************************************************
 // Load up the samples and binning specified by the user
 void samplePDFND::LoadSamples() {
 // ***************************************************************************
-     
-//WARNING TODO this need to be set by each experiment
-
+  std::cerr<<"Function LoadSamples is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
 } // end LoadSamples
 
 // ***************************************************************************
@@ -272,22 +283,23 @@ void samplePDFND::setAsimovFakeData(bool CustomReWeight) {
 
    // Print the post-Asimov rates
    printRates();
- } // end setAsimovFakeData()
+} // end setAsimovFakeData()
 
 // ***************************************************************************
 // Setup the binning for a given psyche sample
 // mosly used by ND280_SigmaVar, could be called in addSelection...
 void samplePDFND::SetupBinning(int Selection, std::vector<double> & BinningX, std::vector<double> & BinningY) {
 // ***************************************************************************
-
-//WARNING TODO FIXME This is experiment specyfic
+  std::cerr<<"Function SetupBinning is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
 } // end SetupBinning
 
- // ***************************************************************************
- // Set the datapdfs to Poisson fluctuated MC-pdfs and treat them as Asimov data
- // This might require throwing the starting parameters of the Markov Chain to avoid a stationary chain at the first n steps (n might be as large as 10k!)
- void samplePDFND::setAsimovFakeDataFluctuated(bool CustomReWeight) {
-   // ***************************************************************************
+// ***************************************************************************
+// Set the datapdfs to Poisson fluctuated MC-pdfs and treat them as Asimov data
+// This might require throwing the starting parameters of the Markov Chain to avoid a stationary chain at the first n steps (n might be as large as 10k!)
+void samplePDFND::setAsimovFakeDataFluctuated(bool CustomReWeight) {
+// ***************************************************************************
 
    std::cout << "Setting ND280 sample to use statistically fluctuated Asimov as data..." << std::endl;
    if (HaveIRandomStart) {
@@ -337,7 +349,7 @@ void samplePDFND::SetupBinning(int Selection, std::vector<double> & BinningX, st
      // Clone the MC, then Poisson fluctuate each bin content
      TH2Poly* MCpdf = (TH2Poly*)(getPDF(i))->Clone(temp.c_str());
      for (int ibin = 1; ibin < MCpdf->GetNumberOfBins()+1; ibin++){
-       MCpdf->SetBinContent(ibin, rand->PoissonD((MCpdf->GetBinContent(ibin))));
+       MCpdf->SetBinContent(ibin, rnd->PoissonD((MCpdf->GetBinContent(ibin))));
      }
     
      // Pass the pointer to addData
@@ -358,9 +370,9 @@ void samplePDFND::SetupBinning(int Selection, std::vector<double> & BinningX, st
    printRates();
  } // end setAsimovFakeData()
 
- // ***************************************************************************
- void samplePDFND::setAsimovFakeData_FromFile(std::string &FileName) {
-   // ***************************************************************************
+// ***************************************************************************
+void samplePDFND::setAsimovFakeData_FromFile(std::string &FileName) {
+// ***************************************************************************
    std::cout << "Setting ND280 sample to use fakedata from file " << FileName << " as data..." << std::endl;
 
    if (HaveIRandomStart) {
@@ -430,7 +442,7 @@ void samplePDFND::SetupBinning(int Selection, std::vector<double> & BinningX, st
    printRates();
 
    delete AsimovFile;
- }
+}
 
 // ***************************************************************************
 // This function is used for setting data from a file; it is slightly different
@@ -581,19 +593,70 @@ void samplePDFND::setAsimovFakeDataThrow() {
 
    // Print the post-Asimov rates
    printRates();
- } // end setAsimovFakeData()
+} // end setAsimovFakeData()
 
 // ***************************************************************************
 // Function which enables the samplePDFs to be plotted in accordance to interaction mode
 void samplePDFND::enableModeHistograms() {
 // ***************************************************************************
 
-// WARNING TODO This need to be set by each experiment as it depends on MaCh3_Mode
+   if (modepdf == true) {
+     std::cout << "Already enabled modepdf but you're trying to do so again" << std::endl;
+     std::cout << "Just returning to caller..." << std::endl;
+     return;
+   }
+
+   modepdf = true;
+
+   // Expand to make all samples
+   samplemodepdfs = new TObjArray(0);
+   samplemodepdfs->Expand(nSamples);
+   samplemodepdfs->SetOwner(true);
+   modeobjarray = new TObjArray*[nSamples]();
+   bool valid = false;
+
+   for (int i = 0; i < nSamples; i++)
+   {
+     if (samplepdfs->At(i) == NULL) continue;
+     // Make sure at least one sample is added (unfortunately the calling of enableModeHistograms() needs to happen _AFTER_ addSelection, or else we have no added selections at all
+     valid = true;
+
+     modeobjarray[i] = new TObjArray(0);
+     modeobjarray[i]->Expand(nModes+1);
+     modeobjarray[i]->SetOwner(true);
+
+     for (int j = 0; j < nModes+1; j++) {
+       TString name = SampleName[i].c_str();
+       name += j;
+       if (ndims[i] == 1) {
+         TH1D* tmp = ((TH1D*)samplepdfs->At(i));
+         TH1D* clone = (TH1D*)tmp->Clone(name);
+         modeobjarray[i]->AddAt(clone, j);
+       } else if (ndims[i] == 2) {
+         TH2Poly* tmp = ((TH2Poly*)samplepdfs->At(i));
+         TH2Poly* clone = (TH2Poly*)tmp->Clone(name);
+         modeobjarray[i]->AddAt(clone, j);
+         // Complain if ndims is some weird thing
+       } else {
+         std::cerr << "ndims[" << i << "] != 1 or 2 in enableModeHistograms()" << std::endl;
+         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+         throw;
+       }
+     } // End loop over interaction modes
+     samplemodepdfs->AddAt(modeobjarray[i], i);
+   } // End loop over psyche samples
+
+   if (valid == false) {
+     std::cerr << "Tried enabling mode pdfs without having any selections enabled" << std::endl;
+     std::cerr << "Did you call enableModeHistograms() before you did addSelection()?" << std::endl;
+     std::cerr << "Call addSelection() first, then enableModeHistograms()" << std::endl;
+     throw;
+   }
 }
 
 
 // ***************************************************************************
-// Helper function to print rates for the psyche samples
+// Helper function to print rates for the samples
 void samplePDFND::printRates(bool dataonly) {
 // ***************************************************************************
     std::cout << std::setw(40) << std::left << "Sample" << std::setw(10) << "Data" << std::setw(10);
@@ -613,7 +676,7 @@ void samplePDFND::printRates(bool dataonly) {
        if(!dataonly)
        {
         sumMC   += NoOverflowIntegral((TH2Poly*)(getPDF(i)));
-        /*for (int k = 0; k < kMaCh3_nModes+1; k++) {
+        /*for (int k = 0; k < nModes+1; k++) {
           std::string ModeName = std::string("MC")+name+"_"+MaCh3mode_ToString(MaCh3_Mode(k));
           std::cout << std::setw(40) << std::left << ModeName <<  NoOverflowIntegral(((TH2Poly*)getPDFMode(i,k))) << std::setw(10) << "|"<<std::endl;
         }*/
@@ -661,8 +724,7 @@ void samplePDFND::printRates(bool dataonly) {
    else
       std::cout << std::endl;
    //NDDetCov->printNominalCurrProp();
- 
- }
+}
 
 
 // ***************************************************************************
@@ -675,12 +737,9 @@ void samplePDFND::RandomStart() {
    CheckCovariances();
    
    std::vector<covarianceBase*> Systematics;
-   if (XsecCov) {
-     Systematics.push_back(XsecCov);
-   }
-   if (NDDetCov) {
-     Systematics.push_back(NDDetCov);
-   }
+   if (XsecCov) Systematics.push_back(XsecCov);
+
+   if (NDDetCov) Systematics.push_back(NDDetCov);
 
    // Reconfigure the systematics randomly
    for (std::vector<covarianceBase*>::iterator it = Systematics.begin(); it != Systematics.end(); it++) {
@@ -785,7 +844,7 @@ void samplePDFND::ReWeight_MC_MP() {
    // Declare the omp parallel region
    // The parallel region needs to stretch beyond the for loop!
  #pragma omp parallel private(samplePDF_array_private, samplePDF_mode_array_private, samplePDF_w2_array_private)
-   {
+  {
      // private to each thread
      samplePDF_array_private = new double*[nSamples]();
      samplePDF_w2_array_private = new double*[nSamples]();
@@ -802,8 +861,8 @@ void samplePDFND::ReWeight_MC_MP() {
      if (modepdf) {
        samplePDF_mode_array_private = new double**[nSamples]();
        for (__int__ i = 0; i < nSamples; ++i) {
-         samplePDF_mode_array_private[i] = new double*[kMaCh3_nModes+1]();
-         for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) {
+         samplePDF_mode_array_private[i] = new double*[nModes+1]();
+         for (__int__ j = 0; j < nModes+1; ++j) {
            samplePDF_mode_array_private[i][j] = new double[maxBins[i]]();
            for (__int__ k = 0; k < maxBins[i]; ++k) {
              samplePDF_mode_array_private[i][j][k] = 0.0;
@@ -930,7 +989,7 @@ void samplePDFND::ReWeight_MC_MP() {
        if (modepdf) 
        {
          for (__int__ i = 0; i < nSamples; ++i) {
-           for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) {
+           for (__int__ j = 0; j < nModes+1; ++j) {
              for (__int__ k = 0; k < maxBins[i]; ++k) {
                // Do the same summation for the mode arrays
  #pragma omp atomic
@@ -953,7 +1012,7 @@ void samplePDFND::ReWeight_MC_MP() {
      if (modepdf) {
        for (__int__ i = 0; i < nSamples; ++i) 
        {
-         for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) {
+         for (__int__ j = 0; j < nModes+1; ++j) {
            delete[] samplePDF_mode_array_private[i][j];
          }
          delete[] samplePDF_mode_array_private[i];
@@ -972,7 +1031,7 @@ void samplePDFND::ReWeight_MC_MP() {
      for (__int__ i = 0; i < nSamples; ++i) 
      {
        if (samplepdfs->At(i) == NULL) continue;
-       for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) 
+       for (__int__ j = 0; j < nModes+1; ++j)
        {
          for (__int__ k = 0; k < maxBins[i]-__TH2PolyOverflowBins__; ++k) 
          {
@@ -1105,10 +1164,10 @@ void samplePDFND::ReWeight_MC_MP() {
 #endif
 
 
- // *******************************************
- // Calculate the cross-section weight
- double samplePDFND::CalcXsecWeight(const int i) {
-   // *******************************************
+// *******************************************
+// Calculate the cross-section weight
+double samplePDFND::CalcXsecWeight(const int i) {
+// *******************************************
 
    double xsecw = 1.;
 
@@ -1176,11 +1235,11 @@ void samplePDFND::ReWeight_MC_MP() {
  }
 
  #if USE_SPLINE >= USE_TF1
- // ***************************************************************************
- // Calculate the TF1 weight for one event i
- double samplePDFND::CalcXsecWeight_Spline(const int i) {
-   // ***************************************************************************
-   // The returned cross-section weight
+// ***************************************************************************
+// Calculate the TF1 weight for one event i
+double samplePDFND::CalcXsecWeight_Spline(const int i) {
+// ***************************************************************************
+// The returned cross-section weight
    double xsecw = 1.0;
    // Loop over the spline parameters and get their responses
    for (int id = 0; id < nSplineParams; ++id) {
@@ -1237,9 +1296,9 @@ double samplePDFND::CalcXsecWeight_Spline(const int i) {
  }
  #endif
  
- // ***************************************************************************
- // Calculate the normalisation weight for one event
- double samplePDFND::CalcXsecWeight_Norm(const int i) {
+// ***************************************************************************
+// Calculate the normalisation weight for one event
+double samplePDFND::CalcXsecWeight_Norm(const int i) {
 // ***************************************************************************
 
    double xsecw = 1.0;
@@ -1252,38 +1311,8 @@ double samplePDFND::CalcXsecWeight_Spline(const int i) {
     #endif
     }
    return xsecw;
- }
-    
-// ***************************************************************************
-// Get memory, which is probably silly
-int samplePDFND::getValue(){ //Note: this value is in KB!
-// ***************************************************************************
-  FILE* file = fopen("/proc/self/status", "r");
-  int result = -1;
-  char line[128];
-
-  while (fgets(line, 128, file) != NULL){
-    if (strncmp(line, "VmSize:", 7) == 0){
-      result = parseLine(line);
-      break;
-    }
-  }
-  fclose(file);
-  return result;
 }
-// ***************************************************************************
 
-
-// ***************************************************************************
-// Get memory, which is probably silly
-int samplePDFND::parseLine(char* line){
-  // ***************************************************************************
-  int i = strlen(line);
-  while (*line < '0' || *line > '9') line++;
-  line[i-3] = '\0';
-  i = atoi(line);
-  return i;
-}
 
 
 // ***************************************************************************
@@ -1295,15 +1324,16 @@ int samplePDFND::parseLine(char* line){
 //                       Most of this is done automatically now, other than setting what xsec model it is by looking at the size (could probably be made even better by string comparison on the input root file name!) and the modes (could also probably be done by string comparison, e.g. if (string.find("CCQE") != std::string::npos) norm_mode = kMaCh3_CCQE)
 void samplePDFND::setXsecCov(covarianceXsec * const xs, bool norms) {
 // ***************************************************************************
-
-//WARNING TODO FIXME
+  std::cerr<<"Function setXsecCov is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
 } // End setting of setXsecCov for normalisation parameters
 
 
 // ***************************************************************************
 // Get individual sample likelihood
 double samplePDFND::getSampleLikelihood(int isample) {
-  // ***************************************************************************
+// ***************************************************************************
 
   double negLogLsample = 0.;
 
@@ -1323,7 +1353,7 @@ double samplePDFND::getSampleLikelihood(int isample) {
 // ***************************************************************************
 // Get the likelihood
 double samplePDFND::getLikelihood() {
-  // ***************************************************************************
+// ***************************************************************************
 
   double negLogL = 0.;
 
@@ -1402,7 +1432,7 @@ double samplePDFND::getLikelihood() {
 // Essentially solves equation 11
 // data is data, mc is mc, w2 is Sum(w_{i}^2) (sum of weights squared), which is sigma^2_{MC stats}
 double samplePDFND::getTestStatLLH(double data, double mc, double w2) {
-  // *************************
+// *************************
 
   // Need some MC
   if (mc == 0) return 0.0;
@@ -1552,10 +1582,10 @@ void samplePDFND::addData(std::vector<double> &dat, int index) {
    return;
  }
 
- // *************************
- // Add data from a vector of vector of doubles
- void samplePDFND::addData(std::vector< vector <double> > &dat, int index) {
-   // *************************
+// *************************
+// Add data from a vector of vector of doubles
+void samplePDFND::addData(std::vector< vector <double> > &dat, int index) {
+// *************************
 
    if (datapdfs->At(index) == NULL) {
      std::cerr << "Failed to replace data because selection " << SampleName[index] << "(" << index << ")" <<  " is not enabled" << std::endl;
@@ -1577,13 +1607,12 @@ void samplePDFND::addData(std::vector<double> &dat, int index) {
    }
 
    return;
+}
 
- }
-
- // *************************
- // Add data from TH1D
- void samplePDFND::addData(TH1D* binneddata, int index){
-   // *************************
+// *************************
+// Add data from TH1D
+void samplePDFND::addData(TH1D* binneddata, int index){
+  // *************************
 
    if (datapdfs->At(index)) {
      datapdfs->RemoveAt(index);
@@ -1593,13 +1622,12 @@ void samplePDFND::addData(std::vector<double> &dat, int index) {
    }
 
    return;
+}
 
- }
-
- // *************************
- // Add data from TH2D
- void samplePDFND::addData(TH2Poly* binneddata, int index){
-   // *************************
+// *************************
+// Add data from TH2D
+void samplePDFND::addData(TH2Poly* binneddata, int index){
+// *************************
 
    if(datapdfs->At(index)) {
      datapdfs->RemoveAt(index);
@@ -1609,15 +1637,14 @@ void samplePDFND::addData(std::vector<double> &dat, int index) {
    }
 
    return;
- }
+}
 
- // *************************
- // Get the event rate
- double samplePDFND::getEventRate(int index) {
-   // *************************
+// *************************
+// Get the event rate
+double samplePDFND::getEventRate(int index) {
+// *************************
 
    if(samplepdfs->At(index)) {
-     //
      return NoOverflowIntegral((TH2Poly*)getPDF(index));
    } else {
      return 0;
@@ -1625,26 +1652,15 @@ void samplePDFND::addData(std::vector<double> &dat, int index) {
  }
 
 
+
+#if USE_SPLINE >= USE_TF1
 // ***************************************************************************
-// Make the TChain for getting spline information once we've looped over relevant psyche events
-TChain* samplePDFND::MakeXsecChain() {
+// TGraph** because each xsecgraph points to a TObjArray and each collection of xsecgraph has nSplines entries
+//
+// #########################
+// WARNING THIS NEEDS TO MATCH THE ENUMERATION IN chain->SetBranchAddress IN samplePDFND::fillReweightingBins()
+void samplePDFND::SetSplines(TGraph** &xsecgraph, const int EventNumber) {
 // ***************************************************************************
-
-//WARNING TODO this has to be set by each experiment
-
-
-   TChain* chain = new TChain("sample_sum");
-   return chain;
-}
-
- #if USE_SPLINE >= USE_TF1
- // ***************************************************************************
- // TGraph** because each xsecgraph points to a TObjArray and each collection of xsecgraph has nSplines entries
- //
- // #########################
- // WARNING THIS NEEDS TO MATCH THE ENUMERATION IN chain->SetBranchAddress IN samplePDFND::fillReweightingBins()
- void samplePDFND::SetSplines(TGraph** &xsecgraph, const int EventNumber) {
-   // ***************************************************************************
 
    xsecInfo[EventNumber].SetSplineNumber(nSplineParams);
 
@@ -1674,10 +1690,10 @@ TChain* samplePDFND::MakeXsecChain() {
 
        // For 2p2h shape C and O we can't fit a polynomial: try a linear combination of two linear functions around 0
        if (j == 3 || j == 4) {
-	 Fitter = new TF1(SplineTitle.str().c_str(), "(x<=0)*(1+[0]*x)+(x>0)*([1]*x+1)", xsecgraph[j]->GetX()[0], xsecgraph[j]->GetX()[xsecgraph[j]->GetN()-1]);
-	 // Fit 5hd order polynomial for all other parameters
+        Fitter = new TF1(SplineTitle.str().c_str(), "(x<=0)*(1+[0]*x)+(x>0)*([1]*x+1)", xsecgraph[j]->GetX()[0], xsecgraph[j]->GetX()[xsecgraph[j]->GetN()-1]);
+        // Fit 5hd order polynomial for all other parameters
        } else {
-	 Fitter = new TF1(SplineTitle.str().c_str(), "1+[0]*x+[1]*x*x+[2]*x*x*x+[3]*x*x*x*x+[4]*x*x*x*x*x", xsecgraph[j]->GetX()[0], xsecgraph[j]->GetX()[xsecgraph[j]->GetN()-1]);
+        Fitter = new TF1(SplineTitle.str().c_str(), "1+[0]*x+[1]*x*x+[2]*x*x*x+[3]*x*x*x*x+[4]*x*x*x*x*x", xsecgraph[j]->GetX()[0], xsecgraph[j]->GetX()[xsecgraph[j]->GetN()-1]);
        }
        // Fit the TF1 to the graph
        xsecgraph[j]->Fit(Fitter, "Q0");
@@ -1704,59 +1720,59 @@ TChain* samplePDFND::MakeXsecChain() {
        // Scan 100 points and look for differences in weights
        const int npoints = 100;
        for (int z = 0; z < npoints; ++z) {
-	 double val = xsecgraph[j]->GetX()[0] + z*xrange/double(npoints);
-	 double fitted = Fitter->Eval(val);
-	 double splined = spline->Eval(val);
-	 if (fabs(fitted/splined-1) > 0.05) {
-	   checkit = true;
-	   point = val;
-	   break;
-	 }
+        double val = xsecgraph[j]->GetX()[0] + z*xrange/double(npoints);
+        double fitted = Fitter->Eval(val);
+        double splined = spline->Eval(val);
+        if (fabs(fitted/splined-1) > 0.05) {
+          checkit = true;
+          point = val;
+          break;
+        }
        }
 
-       // If we've found a dodgy event write to file
-       if (checkit == true) {
-	 TCanvas *temp = new TCanvas("canv","canv", 800,800);
-	 temp->SetName((name+"_canv").c_str());
-	 temp->SetTitle((name+"_canv").c_str());
-	 xsecgraph[j]->SetLineColor(kBlack);
-	 xsecgraph[j]->SetLineWidth(2);
-	 xsecgraph[j]->SetLineStyle(kSolid);
-	 xsecgraph[j]->SetFillStyle(0);
-	 xsecgraph[j]->SetFillColor(0);
-	 Fitter->SetLineColor(kRed);
-	 Fitter->SetLineStyle(kDashed);
-	 Fitter->SetLineWidth(2);
-	 spline->SetLineColor(kOrange);
-	 spline->SetLineStyle(kSolid);
-	 spline->SetLineWidth(2);
+      // If we've found a dodgy event write to file
+      if (checkit == true) {
+      TCanvas *temp = new TCanvas("canv","canv", 800,800);
+      temp->SetName((name+"_canv").c_str());
+      temp->SetTitle((name+"_canv").c_str());
+      xsecgraph[j]->SetLineColor(kBlack);
+      xsecgraph[j]->SetLineWidth(2);
+      xsecgraph[j]->SetLineStyle(kSolid);
+      xsecgraph[j]->SetFillStyle(0);
+      xsecgraph[j]->SetFillColor(0);
+      Fitter->SetLineColor(kRed);
+      Fitter->SetLineStyle(kDashed);
+      Fitter->SetLineWidth(2);
+      spline->SetLineColor(kOrange);
+      spline->SetLineStyle(kSolid);
+      spline->SetLineWidth(2);
 
-	 temp->cd();
-	 xsecgraph[j]->Draw();
-	 TLine *line = new TLine(point, 0, point, 20);
-	 line->SetLineColor(kRed);
-	 line->SetLineWidth(2);
-	 xsecgraph[j]->GetXaxis()->SetTitle("Variation (rel nominal)");
-	 xsecgraph[j]->GetYaxis()->SetTitle("Weight");
-	 spline->Draw("same");
-	 Fitter->Draw("same");
-	 line->Draw("same");
-	 TLegend *leg = new TLegend(0.65, 0.85, 1.0, 1.0);
-	 leg->SetHeader(name.c_str());
-	 leg->AddEntry(xsecgraph[j], "Graph");
-	 leg->AddEntry(spline, "TSpline3");
-	 leg->AddEntry(Fitter, "TF1");
-	 leg->Draw("same");
+      temp->cd();
+      xsecgraph[j]->Draw();
+      TLine *line = new TLine(point, 0, point, 20);
+      line->SetLineColor(kRed);
+      line->SetLineWidth(2);
+      xsecgraph[j]->GetXaxis()->SetTitle("Variation (rel nominal)");
+      xsecgraph[j]->GetYaxis()->SetTitle("Weight");
+      spline->Draw("same");
+      Fitter->Draw("same");
+      line->Draw("same");
+      TLegend *leg = new TLegend(0.65, 0.85, 1.0, 1.0);
+      leg->SetHeader(name.c_str());
+      leg->AddEntry(xsecgraph[j], "Graph");
+      leg->AddEntry(spline, "TSpline3");
+      leg->AddEntry(Fitter, "TF1");
+      leg->Draw("same");
 
-	 dumpfile->cd();
-	 xsecgraph[j]->Write();
-	 Fitter->Write();
-	 spline->Write();
-	 temp->Write();
+      dumpfile->cd();
+      xsecgraph[j]->Write();
+      Fitter->Write();
+      spline->Write();
+      temp->Write();
 
-	 delete temp;
-	 delete leg;
-	 delete line;
+      delete temp;
+      delete leg;
+      delete line;
        }
        delete spline;
  #endif
@@ -1786,13 +1802,13 @@ TChain* samplePDFND::MakeXsecChain() {
  } // end function
 
  #else
- // ***************************************************************************
- // TGraph** because each xsecgraph points to a TObjArray and each collection of xsecgraph has nSplines entries
- //
- // #########################
- // WARNING THIS NEEDS TO MATCH THE ENUMERATION IN chain->SetBranchAddress IN samplePDFND::fillReweightingBins()
- void samplePDFND::SetSplines(TGraph** &xsecgraph, const int EventNumber) {
-   // ***************************************************************************
+// ***************************************************************************
+// TGraph** because each xsecgraph points to a TObjArray and each collection of xsecgraph has nSplines entries
+//
+// #########################
+// WARNING THIS NEEDS TO MATCH THE ENUMERATION IN chain->SetBranchAddress IN samplePDFND::fillReweightingBins()
+void samplePDFND::SetSplines(TGraph** &xsecgraph, const int EventNumber) {
+// ***************************************************************************
 
    xsecInfo[EventNumber].SetSplineNumber(nSplineParams);
 
@@ -1888,7 +1904,7 @@ TChain* samplePDFND::MakeXsecChain() {
 // WARNING THIS NEEDS TO MATCH THE ENUMERATION IN chain->SetBranchAddress IN samplePDFND::fillReweightingBins()
 // Reduce number of points in TGraph to 3
 void samplePDFND::SetSplines_Reduced(TGraph** &xsecgraph, const int EventNumber) {
-  // ***************************************************************************
+// ***************************************************************************
 
   xsecInfo[EventNumber].SetSplineNumber(nSplineParams);
   // First look at the TGraphs
@@ -1991,7 +2007,9 @@ void samplePDFND::SetSplines_Reduced(TGraph** &xsecgraph, const int EventNumber)
 void samplePDFND::fillReweightingBins() {
 // ***************************************************************************
 
-//WARNING TODO this has to be set by each experiment
+  std::cerr<<"Function fillReweightingBins is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
 
 } // End fillReweightingBins() function
 
@@ -2017,36 +2035,6 @@ void samplePDFND::ReserveMemory(int nEve) {
 void samplePDFND::FindNormBins() {
 // ***************************************************************************
 
-//WARNING TODO FIXME need somefancy code for funcional params
-/*
-  Eb_C_nu_pos                   = -999;
-  Eb_C_nubar_pos                = -999;
-  Eb_O_nu_pos                   = -999;
-  Eb_O_nubar_pos                = -999;
-  Alpha_q3_pos                  = -999;
-
-  int berpa_it = 0; // still called berpa_it but now loops over Eb+Q2 instead
-  for (std::vector<int>::iterator it = funcParsIndex.begin(); it != funcParsIndex.end(); ++it, ++berpa_it) 
-  {
-    std::string name = funcParsNames.at(berpa_it);
-    if (name == "EB_dial_C_nu") {
-      Eb_C_nu_pos = *it;
-    } else if (name == "EB_dial_C_nubar") {
-      Eb_C_nubar_pos = *it;
-    } else if (name == "EB_dial_O_nu") {
-      Eb_O_nu_pos = *it;
-    } else if (name == "EB_dial_O_nubar") {
-      Eb_O_nubar_pos = *it;
-    } else if (name == "Alpha_q3") {
-      Alpha_q3_pos = *it;
-      Use2dEb = true;
-      varier_eb->SetUseCache(false);
-    }else {
-      std::cerr << "Found a functional parameter which wasn't Eb in samplePDFND" << std::endl;
-      throw;
-    }
-  }
-*/
   std::cout << "nEvents = "<<nEvents<<std::endl; 
   #ifdef MULTITHREAD
   #pragma omp parallel for
@@ -2322,7 +2310,7 @@ void samplePDFND::DumpSplines(double xsecw, double detw, int i) {
 // ***************************************************************************
 // Prints the relevant struct information and weights for one event
 void samplePDFND::PrintStructs(double xsecw, double detw, const int i) {
-  // ***************************************************************************
+// ***************************************************************************
   std::cout << "===============\nPRINTING EVENT BY EVENT WEIGHTS\n===============" << std::endl;
   std::cout << "EVENT " << i << std::endl;
   NDEve[i].Print();
@@ -2332,32 +2320,6 @@ void samplePDFND::PrintStructs(double xsecw, double detw, const int i) {
   std::cout << std::setw(20) << "totalw (xsec*det*flux)  = " << xsecw*detw*NDEve[i].flux_w << std::endl;
 }
 #endif
-
-// ***************************************************************************
-// Silence cout and cerr. Last is risky but psyche persists on spamming both
-void samplePDFND::QuietPlease() {
-  // ***************************************************************************
-#if DEBUG > 0
-  return;
-#else
-  buf = std::cout.rdbuf();
-  errbuf = std::cerr.rdbuf();
-  std::cout.rdbuf( NULL );
-  std::cerr.rdbuf( NULL );
-#endif
-}
-
-// ***************************************************************************
-// Reset cout and cerr
-void samplePDFND::NowTalk() {
-  // ***************************************************************************
-#if DEBUG > 0
-  return;
-#else
-  std::cout.rdbuf(buf);
-  std::cerr.rdbuf(errbuf);
-#endif
-}
 
 
 #if USE_SPLINE < USE_TF1
@@ -2380,7 +2342,7 @@ void samplePDFND::FindSplineSegment() {
       std::cerr << "SplineInfoArray[" << i << "] isn't set yet" << std::endl;
       std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
       continue;
-      //      throw;
+      //throw;
     }
 
     // Get the variation for this reconfigure for the ith parameter
@@ -2450,8 +2412,8 @@ void samplePDFND::FindSplineSegment() {
 // *************************
 // Prepare the weights before the reweight loop starts
 void samplePDFND::PrepareWeights() {
-  // *************************
-  // Find the relevant spline segments for these parameter variations
+// *************************
+// Find the relevant spline segments for these parameter variations
 #if USE_SPLINE < USE_TF1
   FindSplineSegment();
 #endif
@@ -2459,7 +2421,7 @@ void samplePDFND::PrepareWeights() {
 
 // *************************
 void samplePDFND::GetKinVars(int Sample, KinematicTypes &TypeX, KinematicTypes &TypeY) {
-  // *************************
+// *************************
   //Lepton kinematic is default
   TypeX = kLeptonMomentum;
   TypeY = kLeptonCosTheta;
@@ -2519,7 +2481,7 @@ void samplePDFND::ResetHistograms() {
   // If we want to plot according to mode
   if (modepdf) {
     for (__int__ i = 0; i < nSamples; ++i) {
-      for (int j = 0; j < kMaCh3_nModes+1; ++j) {
+      for (int j = 0; j < nModes+1; ++j) {
           // If 1D
           if (ndims[i] == 1) {
           ((TH1*)((TObjArray*)samplemodepdfs->At(i))->At(j))->Reset();
@@ -2534,39 +2496,5 @@ void samplePDFND::ResetHistograms() {
   } // end the if modepdf
 } // end function
 
-// **************************************************
-// Helper function to set LLH type used in the fit
-void samplePDFND::SetTestStatistic(TestStatistic test_stat) {
-// **************************************************
-  fTestStatistic = test_stat;
-  
-  std::string name = TestStatistic_ToString((TestStatistic)test_stat);
-  std::cout << "Using "<< name <<" likelihood in ND280" << std::endl;
-  if(UpdateW2) std::cout << "With updating W2" << std::endl;
-  else  std::cout << "Without updating W2" << std::endl;
-}
 
-// **************************************************
-// Convert a LLH type to a string
-std::string samplePDFND::TestStatistic_ToString(TestStatistic i) {
-// **************************************************
-    std::string name = "";
 
-    switch(i) {
-        case kPoisson:
-        name = "Poisson";
-        break;
-        case kBarlowBeeston:
-        name = "BarlowBeeston";
-        break;
-        case kIceCube:
-        name = "IceCube";
-        break;
-        default:
-            std::cerr << "UNKNOWN LIKELHOOD SPECIFIED TO ND280!" << std::endl;
-            std::cerr << "You gave test-statistic " << i << std::endl;
-            std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-            throw;
-    }
-    return name;
-}

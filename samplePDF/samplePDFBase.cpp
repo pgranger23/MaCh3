@@ -344,6 +344,44 @@ void samplePDFBase::set2DBinning(int nbins1, double low1, double high1, int nbin
 }
 
 
+// **************************************************
+// Helper function to set LLH type used in the fit
+void samplePDFBase::SetTestStatistic(TestStatistic test_stat) {
+// **************************************************
+  fTestStatistic = test_stat;
+
+  std::string name = TestStatistic_ToString((TestStatistic)test_stat);
+  std::cout << "Using "<< name <<" likelihood in ND280" << std::endl;
+  if(UpdateW2) std::cout << "With updating W2" << std::endl;
+  else  std::cout << "Without updating W2" << std::endl;
+}
+
+// ***************************************************************************
+// Silence cout and cerr. Last is risky but psyche persists on spamming both
+void samplePDFBase::QuietPlease() {
+// ***************************************************************************
+#if DEBUG > 0
+  return;
+#else
+  buf = std::cout.rdbuf();
+  errbuf = std::cerr.rdbuf();
+  std::cout.rdbuf( NULL );
+  std::cerr.rdbuf( NULL );
+#endif
+}
+
+// ***************************************************************************
+// Reset cout and cerr
+void samplePDFBase::NowTalk() {
+// ***************************************************************************
+#if DEBUG > 0
+  return;
+#else
+  std::cout.rdbuf(buf);
+  std::cerr.rdbuf(errbuf);
+#endif
+}
+
 void samplePDFBase::getSampleName(std::vector<std::string> &sampleNameVect, bool latex) 
 {
   if(sampleNameVect.size() !=0)

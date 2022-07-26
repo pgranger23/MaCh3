@@ -6,7 +6,7 @@ namespace MaCh3Utils {
   // Get the mass of a particle from the PDG
   // In GeV, not MeV!
   double GetMassFromPDG(int PDG) {
-    // *****************************
+  // *****************************
 
     switch (abs(PDG)) {
       
@@ -135,7 +135,7 @@ double OverflowIntegral(TH2Poly* poly) {
 // **************************************************
 // Helper function for calculating binned Integral of TH2Poly i.e not including overflow
 double NoOverflowIntegral(TH2Poly* poly) {
-  // **************************************************
+// **************************************************
 
   double integral=0;
 
@@ -388,6 +388,7 @@ double CalculateEnu(double PLep, double costh, double Eb, bool neutrino){
   return Enu;
 
 }
+
 //DB Get the Cernekov momentum threshold in MeV
 double returnCherenkovThresholdMomentum(int PDG)
 {
@@ -397,6 +398,47 @@ double returnCherenkovThresholdMomentum(int PDG)
   return momentumThreshold;
 }
 
+// **************************************************
+int GetMaCh3Modes(){
+// **************************************************
+  std::cerr<<"Function GetMaCh3Modes is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
+
+  return 0;
+}
+
+
+// ***************************************************************************
+// Get memory, which is probably silly
+int getValue(){ //Note: this value is in KB!
+// ***************************************************************************
+  FILE* file = fopen("/proc/self/status", "r");
+  int result = -1;
+  char line[128];
+
+  while (fgets(line, 128, file) != NULL){
+    if (strncmp(line, "VmSize:", 7) == 0){
+      result = parseLine(line);
+      break;
+    }
+  }
+  fclose(file);
+  return result;
+}
+// ***************************************************************************
+
+
+// ***************************************************************************
+// Get memory, which is probably silly
+int parseLine(char* line){
+// ***************************************************************************
+  int i = strlen(line);
+  while (*line < '0' || *line > '9') line++;
+  line[i-3] = '\0';
+  i = atoi(line);
+  return i;
+}
 
 /*
 //DB Function used to define which mode splines are selected for which MaCh3 modes

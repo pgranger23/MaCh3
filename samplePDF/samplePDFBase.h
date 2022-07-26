@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 
+// ROOT include
 #include "TTree.h"
 #include "TH1D.h"
 #include "TH2D.h"
@@ -14,9 +15,11 @@
 #include "TSpline.h"
 #include "TRandom3.h"
 
+//MaCh3 includes
 #include "samplePDFInterface.h"
 #include "splines/splineBase.h"
 #include "Structs.h"
+#include "covariance/covarianceXsec.h"
 
 class samplePDFBase : public samplePDFInterface 
 {
@@ -45,6 +48,9 @@ class samplePDFBase : public samplePDFInterface
   vector<double> generate();
   virtual double getLikelihood();
   virtual std::vector<double>* getDataSample() {return dataSample;};
+  covarianceXsec * const GetXsecCov() const { return XsecCov; };
+
+
   // nominal spectrum things
   //  double getLikelihoodNominal(); // computes the likelihood against a nominal spectra
   /*  TH1D *generateNominal1D();
@@ -67,11 +73,25 @@ class samplePDFBase : public samplePDFInterface
   void init(double pot);
   void init(double pot, std::string mc_version);
   
-  //bool gpu_rw; 
-  double up_bnd; // highest energy to use (MeV)
-
   double getLikelihood_kernel(std::vector<double> &data);
   double getTestStatLLH(double data, double mc);
+  // Provide a setter for the test-statistic
+  void SetTestStatistic(TestStatistic test_stat);
+
+  TestStatistic fTestStatistic;
+  //KS:Super hacky to update W2 or not
+  bool firsttime;
+  bool UpdateW2;
+
+  // Redirect std::cout to silence psyche
+  void QuietPlease();
+  void NowTalk();
+
+  std::streambuf *buf; // Keep the cout buffer
+  std::streambuf *errbuf; // Keep the cerr buffer
+
+  // The covariance classes
+  covarianceXsec* XsecCov;
 
   std::vector<double>* dataSample;
   std::vector< vector <double> >* dataSample2D;
@@ -84,11 +104,16 @@ class samplePDFBase : public samplePDFInterface
   TH1D*_hPDF1D;
   TH2D*_hPDF2D;
 
+  //bool gpu_rw;
+  double up_bnd; // highest energy to use (MeV)
+
   //splines
   splineBase* xsecsplines;
 
   TRandom3* rnd;
   bool MCthrow;
+
+
 };
 
 #endif

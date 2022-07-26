@@ -45,10 +45,6 @@
 // Do we want to debug the TF1 treatment? This involves writing TSpline3* and TF1* to file and comparing how well they fit TGraph*
 //#define DEBUG_TF1
 
-#ifdef MULTITHREAD
-#include "omp.h"
-#endif
-
 // C++ includes
 #include <string>
 #include <cmath>
@@ -105,11 +101,6 @@ class samplePDFND : public samplePDFBase {
       // The reweighting functions
       void reweight(double *oscpar);
       void reweight(double *oscpar, double *oscpar2) { reweight(oscpar); };
-
-      // DEPRECATED
-      //std::vector< std::vector<double> > generate2D(int index);
-      //std::vector<double> generate(int index);
-      //std::vector<double>* getDataSample() {return NULL;}
       
       void addData(std::vector<double> &dat) {return;}
       void addData(std::vector< vector <double> > &dat) {return;}
@@ -158,6 +149,9 @@ class samplePDFND : public samplePDFBase {
       // Reserve spline memory 
       // Virtual for GPU
       void ReserveMemory(int nEve);
+      // Prepare weights
+      // virtual for GPU
+      virtual void PrepareWeights();
 
       inline void LoadSamples();
 
@@ -177,9 +171,6 @@ class samplePDFND : public samplePDFBase {
 #else
       void ReWeight_MC();
 #endif
-      // Prepare weights
-      // virtual for GPU
-      virtual void PrepareWeights();
 
       virtual void ReconfigureFuncPars(){};
       virtual void CalcFuncPars(int Event){};
@@ -195,16 +186,13 @@ class samplePDFND : public samplePDFBase {
       // Calculate the spline weight for a given event
       // virtual for GPU
       virtual double CalcXsecWeight_Spline(const int EventNumber);
-      // Calculate the spline weight for a given event
+      // Calculate the norm weight for a given event
       double CalcXsecWeight_Norm(const int EventNumber);
 
-#ifdef DEBUG
-      // Dump spline information
-      inline void DumpSplines(double xsecw, double detw, int EventNumber);
-      // Print information about the xsec and ndobj structs
-      inline void PrintStructs(double xsecw, double detw, int i);
-#endif
       bool HaveIRandomStart; // Have I random started?
+
+      // Pointer to fit manager
+      manager *FitManager;
 
       // The covariance classes
       covarianceBase* NDDetCov;
@@ -216,35 +204,14 @@ class samplePDFND : public samplePDFBase {
       // Number of MC events are there
       unsigned int nEvents;
 
-      // Contains how many samples we've got
-      __int__ nSamples;
-      //Name of Sample
-      std::vector<std::string> SampleName;
       // what is the maximum number of bins we have
       __int__* maxBins;
 
-      // Struct containing the cross-section info
-      XSecStruct<__SPLINE_TYPE__*>* xsecInfo;
+
 
       // Struct containing the ND280 information
       std::vector<ND280EVENT> NDEve;
       std::vector<ND280EVENT_AUXILIARY> NDEve_Aux;
-
-      //WARNING T2K Specyfic
-      /*
-      //KS: Use 2D or 1D Binding Energy
-      bool Use2dEb;
-      
-      // String with what production we want
-      TString *prod;
-
-      bool UseSandMC; //whether to use sand or not
-      //set if you want to use sand or not
-      void setSandMC(bool useSand){ UseSandMC=useSand;};
-      bool UseSandMC; //whether to use sand or not
-      // Use covariance matrix for detector
-      bool simple;
-      */
 
       // Dimensions of the ith psyche selection (2D or 1D)
       int* ndims;
@@ -280,10 +247,11 @@ class samplePDFND : public samplePDFBase {
       bool modepdf;
       int nModes;
 
+      // Struct containing the cross-section info
+      XSecStruct<__SPLINE_TYPE__*>* xsecInfo;
+
       // number of cross-section normalisation params?
       int nxsec_norm_modes;
-      // Information about the normliastion parameters
-      std::vector<XsecNorms3> xsec_norms;
 
       // Number of spline parameters
       int nSplineParams;
@@ -296,14 +264,26 @@ class samplePDFND : public samplePDFBase {
       std::vector<int> splineParsUniqIndex;
       std::vector<std::string> splineParsUniqNames;
 
-      // Number of function parameters
-      int nFuncParams;
-      std::vector<int> funcParsIndex;
-      std::vector<std::string> funcParsNames;
-
       // Bit-field comparison
       std::vector<int> xsecBitField;
       std::vector<int> linearsplines;
+
+      //WARNING T2K Specyfic
+      /*
+      //KS: Use 2D or 1D Binding Energy
+      bool Use2dEb;
+
+      // String with what production we want
+      TString *prod;
+
+      bool UseSandMC; //whether to use sand or not
+      //set if you want to use sand or not
+      void setSandMC(bool useSand){ UseSandMC=useSand;};
+      bool UseSandMC; //whether to use sand or not
+      // Use covariance matrix for detector
+      bool simple;
+      */
+
 
       // Array of FastSplineInfo structs: keeps information on each xsec spline for fast evaluation
       // Method identical to TSpline3::Eval(double) but faster because less operations
@@ -318,10 +298,12 @@ class samplePDFND : public samplePDFBase {
       TFile *dumpfile;
 #endif
 
-      // Pointer to fit manager
-      manager *FitManager;
-
 #if DEBUG > 0
+      // Dump spline information
+      inline void DumpSplines(double xsecw, double detw, int EventNumber);
+      // Print information about the xsec and ndobj structs
+      inline void PrintStructs(double xsecw, double detw, int i);
+
       unsigned int nEventsInTree;
       // Vector of POT weights needed for pot+xsec weights
       std::vector<double> POTWeights;
@@ -343,6 +325,9 @@ class samplePDFND : public samplePDFBase {
       // Events per normalisation mode
       std::vector<unsigned int> EventsPerMode;
 #endif
+
+  private:
+  int blah;
 };
 
 #if USE_SPLINE < USE_TF1

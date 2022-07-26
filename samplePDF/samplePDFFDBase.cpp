@@ -25,6 +25,9 @@ samplePDFFDBase::samplePDFFDBase(double pot, std::string mc_version, covarianceX
   applyBetaNue=false;
   applyBetaDiag=false;
 
+  //KS: For now FD support only one sample
+  nSamples = 1;
+
   //ETA - leave this out for now, need to fix and make things nice and configurable
   //EnergyScale *energy_first = new EnergyScale();
   //energy_first->SetUncertainty(1.2);
@@ -262,10 +265,7 @@ void samplePDFFDBase::ReWeight_MC() {
 	   	continue;
 	  }
 
-      //Loop over stored normalisation and function pointers 
-      for (int iParam=0;iParam<MCSamples[iSample].nxsec_norm_pointers[iEvent];iParam++) {
-	normweight *= *(MCSamples[iSample].xsec_norm_pointers[iEvent][iParam]);
-      }
+      normweight *= CalcXsecWeight_Norm(iSample, iEvent);
       //DB Catch negative norm weights and skip any event with a negative event. Previously we would set weight to zere and continue but that is inefficient
       if (normweight <= 0.){
 		MCSamples[iSample].xsec_w[iEvent] = 0.;
@@ -453,10 +453,7 @@ void samplePDFFDBase::ReWeight_MC_MP() {
 		  continue;
 		}
 
-		//Loop over stored normalisation and function pointers
-		for (int iParam=0;iParam<MCSamples[iSample].nxsec_norm_pointers[iEvent];iParam++) {
-		  normweight *= *(MCSamples[iSample].xsec_norm_pointers[iEvent][iParam]);
-		}
+        normweight *= CalcXsecWeight_Norm(iSample, iEvent);
 		//DB Catch negative norm weights and skip any event with a negative event. Previously we would set weight to zere and continue but that is inefficient
 		//std::cout << "norm weight is " << normweight << std::endl;
 		if (normweight <= 0.){
@@ -581,6 +578,23 @@ void samplePDFFDBase::ReWeight_MC_MP() {
 }
 #endif
 
+
+// ***************************************************************************
+// Calculate the normalisation weight for one event
+double samplePDFFDBase::CalcXsecWeight_Norm(const int iSample, const int iEvent) {
+// ***************************************************************************
+
+  double xsecw = 1.0;
+  //Loop over stored normalisation and function pointers
+  for (int iParam = 0;iParam < MCSamples[iSample].nxsec_norm_pointers[iEvent]; iParam++)
+  {
+      xsecw *= *(MCSamples[iSample].xsec_norm_pointers[iEvent][iParam]);
+      #ifdef DEBUG
+      if (TMath::IsNaN(xsecw)) std::cout << "iParam=" << iParam << "xsecweight=nan from norms" << std::endl;
+      #endif
+  }
+  return xsecw;
+}
 
 // **************************************************
 // Helper function to reset the data and MC histograms

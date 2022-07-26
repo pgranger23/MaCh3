@@ -1324,9 +1324,77 @@ double samplePDFND::CalcXsecWeight_Norm(const int i) {
 //                       Most of this is done automatically now, other than setting what xsec model it is by looking at the size (could probably be made even better by string comparison on the input root file name!) and the modes (could also probably be done by string comparison, e.g. if (string.find("CCQE") != std::string::npos) norm_mode = kMaCh3_CCQE)
 void samplePDFND::setXsecCov(covarianceXsec * const xs, bool norms) {
 // ***************************************************************************
-  std::cerr<<"Function setXsecCov is experiment specific however core code uses it"<<std::endl;
-  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
-  throw;
+
+  // Set the XsecCov var
+  XsecCov = xs;
+
+  // Get the number of normalisation parameters
+  nxsec_norm_modes = xs->GetNumNearNormParams();
+
+  // Get the infomation for the normalistion parameters
+  xsec_norms = xs->GetNearNormPars();
+
+  // Number of spline parameters
+  nSplineParams   = XsecCov->GetNumNearSplineParams();
+  splineParsIndex = XsecCov->GetNearSplineParsIndex();
+  splineParsNames = XsecCov->GetNearSplineParsNames();
+  splineFileParsNames = XsecCov->GetNearSplineFileParsNames();
+  // Number of unique splines (neutrino and anti-neutrino can share spline name but have a different parameter in covarianceXsec2015)
+  nSplineParamsUniq   = XsecCov->GetNumSplineParamsUniq();
+  splineParsUniqIndex = XsecCov->GetSplineParsUniqIndex();
+  splineParsUniqNames = XsecCov->GetSplineParsUniqNames();
+
+  // Search through which parameters exist in splinePars and don't exist in splineParsUniq
+  int nSplineParamsShare    = XsecCov->GetNumSplineParamsShare();
+  std::vector<int> splineParsShareIndex  = XsecCov->GetSplineParsShareIndex();
+  std::vector<int> splineParsShareToUniq = XsecCov->GetSplineParsShareToUniq();
+  std::vector<std::string> splineParsShareNames  = XsecCov->GetSplineParsShareNames();
+
+  // Find the functional parameters (Eb and Alpha_q3)
+  nFuncParams = XsecCov->GetNumNearFuncParams();
+  funcParsNames = XsecCov->GetNearFuncParsNames();
+  funcParsIndex = XsecCov->GetNearFuncParsIndex();
+
+  // Keep the bit-field first entry
+  for (int i = 0; i < XsecCov->GetNumParams(); i++) {
+    xsecBitField.push_back(XsecCov->GetXSecParamID(i,1));
+  }
+
+  // Output the normalisation parameters as a sanity check!
+  std::cout << "Normalisation parameters: " << std::endl;
+  for (int i = 0; i < nxsec_norm_modes; ++i) {
+    std::cout << std::setw(5) << i << "|" << std::setw(5) << xsec_norms[i].index << "|" << std::setw(30) << xsec_norms[i].name << "|" <<  std::setw(5);
+    for(unsigned j=0;j< xsec_norms[i].modes.size();j++){
+      std::cout<< xsec_norms[i].modes[j];
+    }
+    std::cout<< std::endl;
+
+  }
+
+  std::cout << "Total spline parameters: " << std::endl;
+  for (int i = 0; i < nSplineParams; ++i) {
+    std::cout << std::setw(5) << i << "|" << std::setw(5) << splineParsIndex.at(i) << "|" << std::setw(30) << splineParsNames.at(i) << std::endl;
+  }
+
+  std::cout << "Unique spline parameters: " << std::endl;
+  for (int i = 0; i < nSplineParamsUniq; ++i) {
+    std::cout << std::setw(5) << i << "|" << std::setw(5) << splineParsUniqIndex.at(i) << "|" << std::setw(30) << splineParsUniqNames.at(i) << std::endl;
+  }
+
+  std::cout << "Shared spline parameters: " << std::endl;
+  for (int i = 0; i < nSplineParamsShare; ++i) {
+    std::cout << std::setw(5) << i << "|" << std::setw(5) << splineParsShareIndex.at(i) << "|" << std::setw(30) << splineParsShareNames.at(i) << std::endl;
+  }
+
+#if USE_SPLINE < USE_TF1
+  // Initialise
+  SplineInfoArray = new FastSplineInfo[nSplineParams];
+  for (int i = 0; i < nSplineParams; ++i) {
+    SplineInfoArray[i].nPts = -999;
+    SplineInfoArray[i].xPts = NULL;
+    SplineInfoArray[i].CurrSegment = -999;
+  }
+#endif
 } // End setting of setXsecCov for normalisation parameters
 
 
@@ -2039,19 +2107,19 @@ void samplePDFND::FindNormBins() {
   #ifdef MULTITHREAD
   #pragma omp parallel for
   #endif
-  for(unsigned int iEvent=0; iEvent < nEvents; ++iEvent)
+  for(unsigned int iEvent = 0; iEvent < nEvents; ++iEvent)
   {
     std::vector< int > XsecBins;
     NDEve_Aux[iEvent].xsec_norms_bins = XsecBins;
 
     if (XsecCov) 
     {
-      for(std::vector<XsecNorms3>::iterator it = xsec_norms.begin(); it != xsec_norms.end(); ++it)
+      for(std::vector<XsecNorms4>::iterator it = xsec_norms.begin(); it != xsec_norms.end(); ++it)
       {
         bool noH=false;
         bool targetmatch = false;
-        if((*it).targets.size()==0) targetmatch = true;
-        for(unsigned itarget=0; itarget < (*it).targets.size(); itarget++)
+        if((*it).targets.size() == 0) targetmatch = true;
+        for(unsigned itarget = 0; itarget < (*it).targets.size(); itarget++)
         {
           if(fabs((*it).targets.at(itarget) == NDEve_Aux[iEvent].target)) targetmatch = true;
           
@@ -2120,7 +2188,8 @@ void samplePDFND::FindNormBins() {
         }
 
         if(!modematch) continue;
-
+//WARNING TODO FIXME
+/*
         if((*it).hasKinBounds)
         {
           if((*it).etru_bnd_low >= NDEve_Aux[iEvent].Enu && (*it).etru_bnd_low != -999) continue;
@@ -2128,7 +2197,7 @@ void samplePDFND::FindNormBins() {
           if((*it).q2_true_bnd_low >= NDEve_Aux[iEvent].Q2 && (*it).q2_true_bnd_low != -999) continue;
           if((*it).q2_true_bnd_high < NDEve_Aux[iEvent].Q2 && (*it).q2_true_bnd_high != -999) continue;
         }
-
+*/
         //Now set 'index bin' for each normalisation parameter
         //All normalisations are just 1 bin, so bin = index (where index is just the bin for that normalisation)
         int bin = (*it).index;

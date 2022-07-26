@@ -21,6 +21,9 @@
 #include "Structs.h"
 #include "covariance/covarianceXsec.h"
 
+#ifdef MULTITHREAD
+#include "omp.h"
+#endif
 class samplePDFBase : public samplePDFInterface 
 {
  public:
@@ -63,7 +66,7 @@ class samplePDFBase : public samplePDFInterface
   void addData(TH1D* binneddata);
   void addData(TH2D* binneddata);
 
-  void addXsecSplines(splineBase* splines){xsecsplines=splines;}
+  void addXsecSplines(splineBase* splines){xsecsplines = splines;}
   //virtual void whatAmI(){std::cout << "__FILE__" << std::endl;};
 
   // For adding sample dependent branches to the posteriors tree
@@ -73,6 +76,11 @@ class samplePDFBase : public samplePDFInterface
   void init(double pot);
   void init(double pot, std::string mc_version);
   
+  // Contains how many samples we've got
+  __int__ nSamples;
+  //Name of Sample
+  std::vector<std::string> SampleName;
+
   double getLikelihood_kernel(std::vector<double> &data);
   double getTestStatLLH(double data, double mc);
   // Provide a setter for the test-statistic
@@ -82,6 +90,14 @@ class samplePDFBase : public samplePDFInterface
   //KS:Super hacky to update W2 or not
   bool firsttime;
   bool UpdateW2;
+
+  // Information about the normliastion parameters
+  std::vector<XsecNorms4> xsec_norms;
+
+  // Number of function parameters
+  int nFuncParams;
+  std::vector<int> funcParsIndex;
+  std::vector<std::string> funcParsNames;
 
   // Redirect std::cout to silence psyche
   void QuietPlease();

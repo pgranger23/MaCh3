@@ -8,8 +8,6 @@
 #include <vector>
 
 //ROOT includes
-#include "TTree.h"
-#include "TH1D.h"
 #include "TH2D.h"
 #include "THStack.h"
 #include "TLegend.h"
@@ -27,7 +25,6 @@
 #include "splines/splineBase.h"
 #include "splines/splineFDBase.h"
 
-#include "covariance/covarianceXsec.h"
 #include "covariance/covarianceOsc.h"
 
 #include "FDMCStruct.h"
@@ -170,7 +167,10 @@ public:
 #endif
   // Helper function to reset histograms
   inline void ResetHistograms();
-      
+
+  // Calculate the norm weight for a given event
+  double CalcXsecWeight_Norm(const int iSample, const int iEvent);
+
   //===============================================================================
   //DB Variables required for getLikelihood
   //
@@ -219,14 +219,6 @@ public:
   //ETA - binning opt can probably go soon...
   int BinningOpt;
   int SampleDetID;
-
-  std::string samplename;
-
-  //Information to store for normalisation pars
-  std::vector<XsecNorms4> xsec_norms;
-  int nFuncParams;
-  std::vector<std::string> funcParsNames;
-  std::vector<int> funcParsIndex;
 
   //===============================================================================
   //DB Vectors to store which kinematic cuts we apply

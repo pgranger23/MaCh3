@@ -29,7 +29,6 @@ class samplePDFBase : public samplePDFInterface
  public:
   samplePDFBase(){};
   samplePDFBase(double pot);
-
   virtual ~samplePDFBase();
 
   void getModeName(std::vector<std::string> &modeNameVect, bool latex=false) ;
@@ -72,14 +71,19 @@ class samplePDFBase : public samplePDFInterface
   // For adding sample dependent branches to the posteriors tree
   virtual void setMCMCBranches(TTree *outtree) {};
 
+  __int__ GetNsamples(){ return nSamples; };
+  std::string GetSampleName(int Selection){ return SampleName[Selection]; };
+
   protected:
   void init(double pot);
   void init(double pot, std::string mc_version);
   
   // Contains how many samples we've got
   __int__ nSamples;
+
   //Name of Sample
   std::vector<std::string> SampleName;
+
 
   double getLikelihood_kernel(std::vector<double> &data);
   double getTestStatLLH(double data, double mc);
@@ -90,6 +94,9 @@ class samplePDFBase : public samplePDFInterface
   //KS:Super hacky to update W2 or not
   bool firsttime;
   bool UpdateW2;
+
+  // The different covariance matrices to be associated with the samplePDF
+  void setXsecCov(covarianceXsec * const xsec_cov);
 
   // Information about the normliastion parameters
   std::vector<XsecNorms4> xsec_norms;

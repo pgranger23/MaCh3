@@ -80,7 +80,7 @@ class samplePDFND : public samplePDFBase {
       void InitExperimentSpecific();
 
       // The different covariance matrices to be associated with the samplePDF
-      void setXsecCov(covarianceXsec * const xs, bool norms = false);
+      void setXsecCov(covarianceXsec * const xsec_cov);
       //WARNING FIXME TODO T2K specyfic
       //void setSimpleDetCov(covarianceNDDetPoly * const indet) { NDDetCov = indet; }
       //covarianceNDDetPoly * const GetSimpleDetCov() const { return NDDetCov; }
@@ -121,8 +121,6 @@ class samplePDFND : public samplePDFBase {
       TH2Poly* getW2(int Selection);
       TH1* getPDFMode(int Selection, int Mode) { return (TH1*)((TObjArray*)samplemodepdfs->At(Selection))->At(Mode); };
 
-      std::string getSampleName(int Selection){ return SampleName[Selection]; };
-
       void GetKinVars(int sample, KinematicTypes &TypeX, KinematicTypes &TypeY);
 
       // Setup the binning for a given sample
@@ -160,8 +158,6 @@ class samplePDFND : public samplePDFBase {
 #if USE_SPLINE < USE_TF1
       void SetSplines_Reduced(TGraph** &xsecgraph, const int i);
 #endif
-      //void SetFunct(TGraph** &xsecgraph, const int);
-
       // Helper function to check if the covariances have been set
       inline void CheckCovariances();
 

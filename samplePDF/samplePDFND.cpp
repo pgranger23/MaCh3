@@ -1322,17 +1322,17 @@ double samplePDFND::CalcXsecWeight_Norm(const int i) {
 //                       Finding what parameters are spline parameters (actually doesn't happen here in the code, see instead fillReweightingBins()
 //                       Once all the normalisation parameters are found, set their modes (e.g. CC coherent normalisation should only apply to coherent interaction modes)
 //                       Most of this is done automatically now, other than setting what xsec model it is by looking at the size (could probably be made even better by string comparison on the input root file name!) and the modes (could also probably be done by string comparison, e.g. if (string.find("CCQE") != std::string::npos) norm_mode = kMaCh3_CCQE)
-void samplePDFND::setXsecCov(covarianceXsec * const xs, bool norms) {
+void samplePDFND::setXsecCov(covarianceXsec * const xsec_cov) {
 // ***************************************************************************
 
   // Set the XsecCov var
-  XsecCov = xs;
+  XsecCov = xsec_cov;
 
   // Get the number of normalisation parameters
-  nxsec_norm_modes = xs->GetNumNearNormParams();
+  nxsec_norm_modes = XsecCov->GetNumNearNormParams();
 
   // Get the infomation for the normalistion parameters
-  xsec_norms = xs->GetNearNormPars();
+  xsec_norms = XsecCov->GetNearNormPars();
 
   // Number of spline parameters
   nSplineParams   = XsecCov->GetNumNearSplineParams();
@@ -1364,7 +1364,7 @@ void samplePDFND::setXsecCov(covarianceXsec * const xs, bool norms) {
   std::cout << "Normalisation parameters: " << std::endl;
   for (int i = 0; i < nxsec_norm_modes; ++i) {
     std::cout << std::setw(5) << i << "|" << std::setw(5) << xsec_norms[i].index << "|" << std::setw(30) << xsec_norms[i].name << "|" <<  std::setw(5);
-    for(unsigned j=0;j< xsec_norms[i].modes.size();j++){
+    for(unsigned j = 0; j < xsec_norms[i].modes.size(); j++){
       std::cout<< xsec_norms[i].modes[j];
     }
     std::cout<< std::endl;

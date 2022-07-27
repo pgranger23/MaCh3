@@ -28,6 +28,8 @@ SampleSummary::SampleSummary(const int PsycheSamples, const std::string &Filenam
   Outputfile = NULL;
   OutputTree = NULL;
 
+  nModes = 0;
+  nModes = GetNModes();
   rnd = new TRandom3();
 
   DataHist = new TH2Poly*[nSamples];
@@ -214,7 +216,7 @@ SampleSummary::~SampleSummary() {
     {
         for (int i = 0; i < nSamples; ++i) 
         {
-            for (int j = 0; j < kMaCh3_nModes+1; j++)
+            for (int j = 0; j < nModes+1; j++)
             {
                 for (int k = 0; k < maxBins[i]; ++k) 
                 {   
@@ -460,10 +462,10 @@ void SampleSummary::AddThrowByMode(std::vector<std::vector<TH2Poly*>> &SampleVec
         
         if(!DoByModePlots)//Do only first time
         {
-            PosteriorHist_ByMode[PsycheSampleEnum] = new TH1D**[kMaCh3_nModes+1];
-            MeanHist_ByMode[PsycheSampleEnum] = new TH2Poly*[kMaCh3_nModes+1];
+            PosteriorHist_ByMode[PsycheSampleEnum] = new TH1D**[nModes+1];
+            MeanHist_ByMode[PsycheSampleEnum] = new TH2Poly*[nModes+1];
         }
-        for (int j = 0; j < kMaCh3_nModes+1; j++)
+        for (int j = 0; j < nModes+1; j++)
         {
             if(!DoByModePlots) //Do only first time
             { 
@@ -472,7 +474,7 @@ void SampleSummary::AddThrowByMode(std::vector<std::vector<TH2Poly*>> &SampleVec
 
                 std::string name = std::string(NominalHist[PsycheSampleEnum]->GetName());
                 name = name.substr(0, name.find("_nom"));
-                name = name + "_"+MaCh3mode_ToString(MaCh3_Mode(j));
+                name = name + "_"+Mode_ToString(j);
                 
                 for (int i = 0; i <= maxBins[PsycheSampleEnum]; i++)
                 {
@@ -793,7 +795,7 @@ void SampleSummary::Write() {
     
     if(DoByModePlots)
     {
-        for (int j = 0; j < kMaCh3_nModes+1; j++)
+        for (int j = 0; j < nModes+1; j++)
         {
             MeanHist_ByMode[i][j]->Write();
             TH1D *MeanProjectX_ByMode = ProjectPoly(MeanHist_ByMode[i][j], true, i, true);
@@ -961,7 +963,7 @@ void SampleSummary::MakePredictive() {
     
     if(DoByModePlots)
     {
-        for (int j = 0; j < kMaCh3_nModes+1; j++)
+        for (int j = 0; j < nModes+1; j++)
         {
             // Loop over each pmu cosmu bin
             for (int i = 1; i < maxBins[PsycheSampleEnum]+1; ++i) 

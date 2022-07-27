@@ -408,6 +408,25 @@ int GetMaCh3Modes(){
   return 0;
 }
 
+// **************************************************
+std::string Mode_ToString(int i){
+// **************************************************
+  std::cerr<<"Function Mode_ToString is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
+
+  return 0;
+}
+
+// **************************************************
+std::string Mode_ToFancyString(int i){
+// **************************************************
+  std::cerr<<"Function Mode_ToFancyString is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
+
+  return 0;
+}
 
 // ***************************************************************************
 // Get memory, which is probably silly

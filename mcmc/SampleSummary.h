@@ -32,11 +32,7 @@ class SampleSummary {
     void Write();
     
     void SetLikelihood(int TestStatystic){ likelihood = TestStatystic;};
-#ifdef CUDA
-    void SetSamplePDF(samplePDFNDGPU* const sample){ sampleND = sample;};
-#else
     void SetSamplePDF(samplePDFND* const sample){ sampleND = sample;};
-#endif
     
   private:
     TRandom3* rnd;

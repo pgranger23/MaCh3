@@ -63,6 +63,9 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   samplemodepdfs = NULL;
   modeobjarray = NULL;
 
+  nModes = 0;
+  nModes = GetNModes();
+
   ndims = NULL;
   kinvars = NULL;
    
@@ -140,7 +143,7 @@ samplePDFND::~samplePDFND() {
    // Delete the master mode array
    if (modepdf) {
      for (__int__ i = 0; i < nSamples; i++) {
-       for (__int__ j = 0; j < kMaCh3_nModes+1; j++) {
+       for (__int__ j = 0; j < nModes+1; j++) {
          delete[] samplePDF_mode_array[i][j];
        }
        delete[] samplePDF_mode_array[i];
@@ -638,10 +641,10 @@ void samplePDFND::EnableModeHistograms() {
      valid = true;
 
      modeobjarray[i] = new TObjArray(0);
-     modeobjarray[i]->Expand(kMaCh3_nModes+1);
+     modeobjarray[i]->Expand(nModes+1);
      modeobjarray[i]->SetOwner(true);
 
-     for (int j = 0; j < kMaCh3_nModes+1; j++) {
+     for (int j = 0; j < nModes+1; j++) {
        TString name = SampleName[i].c_str();
        name += j;
        if (ndims[i] == 1) {
@@ -692,8 +695,8 @@ void samplePDFND::printRates(bool dataonly) {
        if(!dataonly)
        {
         sumMC   += NoOverflowIntegral((TH2Poly*)(getPDF(i)));
-        /*for (int k = 0; k < kMaCh3_nModes+1; k++) {
-          std::string ModeName = std::string("MC")+name+"_"+MaCh3mode_ToString(MaCh3_Mode(k));
+        /*for (int k = 0; k < nModes+1; k++) {
+          std::string ModeName = std::string("MC")+name+"_"+Mode_ToString(k);
           std::cout << std::setw(40) << std::left << ModeName <<  NoOverflowIntegral(((TH2Poly*)getPDFMode(i,k))) << std::setw(10) << "|"<<std::endl;
         }*/
         likelihood = getSampleLikelihood(i);
@@ -877,8 +880,8 @@ void samplePDFND::ReWeight_MC_MP() {
      if (modepdf) {
        samplePDF_mode_array_private = new double**[nSamples]();
        for (__int__ i = 0; i < nSamples; ++i) {
-         samplePDF_mode_array_private[i] = new double*[kMaCh3_nModes+1]();
-         for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) {
+         samplePDF_mode_array_private[i] = new double*[nModes+1]();
+         for (__int__ j = 0; j < nModes+1; ++j) {
            samplePDF_mode_array_private[i][j] = new double[maxBins[i]]();
            for (__int__ k = 0; k < maxBins[i]; ++k) {
              samplePDF_mode_array_private[i][j][k] = 0.0;
@@ -1005,7 +1008,7 @@ void samplePDFND::ReWeight_MC_MP() {
        if (modepdf) 
        {
          for (__int__ i = 0; i < nSamples; ++i) {
-           for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) {
+           for (__int__ j = 0; j < nModes+1; ++j) {
              for (__int__ k = 0; k < maxBins[i]; ++k) {
                // Do the same summation for the mode arrays
  #pragma omp atomic
@@ -1028,7 +1031,7 @@ void samplePDFND::ReWeight_MC_MP() {
      if (modepdf) {
        for (__int__ i = 0; i < nSamples; ++i) 
        {
-         for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) {
+         for (__int__ j = 0; j < nModes+1; ++j) {
            delete[] samplePDF_mode_array_private[i][j];
          }
          delete[] samplePDF_mode_array_private[i];
@@ -1047,7 +1050,7 @@ void samplePDFND::ReWeight_MC_MP() {
      for (__int__ i = 0; i < nSamples; ++i) 
      {
        if (samplepdfs->At(i) == NULL) continue;
-       for (__int__ j = 0; j < kMaCh3_nModes+1; ++j)
+       for (__int__ j = 0; j < nModes+1; ++j)
        {
          for (__int__ k = 0; k < maxBins[i]-__TH2PolyOverflowBins__; ++k) 
          {
@@ -2575,8 +2578,8 @@ void samplePDFND::InitialisePDF() {
    // Has an extra index to denote the mode
      samplePDF_mode_array = new double**[nSamples]();
      for (__int__ i = 0; i < nSamples; i++) {
-       samplePDF_mode_array[i] = new double*[kMaCh3_nModes+1]();
-       for (__int__ j = 0; j < kMaCh3_nModes+1; j++) {
+       samplePDF_mode_array[i] = new double*[nModes+1]();
+       for (__int__ j = 0; j < nModes+1; j++) {
          samplePDF_mode_array[i][j] = new double[maxBins[i]]();
          for (__int__ k = 0; k < maxBins[i]; ++k) {
            samplePDF_mode_array[i][j][k] = 0.0;
@@ -2635,7 +2638,7 @@ void samplePDFND::ResetHistograms() {
   // If we want to plot according to mode
   if (modepdf) {
     for (__int__ i = 0; i < nSamples; ++i) {
-      for (int j = 0; j < kMaCh3_nModes+1; ++j) {
+      for (int j = 0; j < nModes+1; ++j) {
           // If 1D
           if (ndims[i] == 1) {
           ((TH1*)((TObjArray*)samplemodepdfs->At(i))->At(j))->Reset();
@@ -2822,7 +2825,7 @@ void samplePDFND::CompareCPU_GPU_Splines(const int EventNumber) {
       std::cerr << "Found difference in splines greater than 1E-5!" << std::endl;
 
       std::cerr << "   Event no:      " << EventNumber << std::endl;
-      std::cerr << "   Event mode:    " << MaCh3mode_ToString((MaCh3_Mode)xsecInfo[EventNumber].mode) << std::endl;
+      std::cerr << "   Event mode:    " << Mode_ToString(xsecInfo[EventNumber].mode) << std::endl;
       std::cerr << "   Event species: " << xsecInfo[EventNumber].species << std::endl;
 
       std::cerr << "   Parameter:     " << splineParsNames[id] << std::endl;

@@ -230,6 +230,9 @@ double samplePDFFDBase::calcOscWeights(int nutype, int oscnutype, double en, dou
 //This function fills the samplePDFFD_array array which is binned to match the sample binning, such that bin[1][1] is the equivalent of _hPDF2D->GetBinContent(2,2) {Noticing the offset}
 void samplePDFFDBase::ReWeight_MC() {
 
+  //DB Reset which cuts to apply
+  Selection = StoredSelection;
+
   ReconfigureFuncPars();
 
   for (int iSample=0;iSample<(int)MCSamples.size();iSample++) {
@@ -258,11 +261,7 @@ void samplePDFFDBase::ReWeight_MC() {
       //As weights were skdet::fParProp, and we use the non-shifted erec, we might as well cache the corresponding fParProp index for each event and the pointer to it
       //MCSamples[iSample].skdet_w[iEvent] = *(MCSamples[iSample].skdet_pointer[iEvent]);
 
-      //DB Xsec syst
-      //Loop over stored spline pointers
-      for (int iSpline=0;iSpline<MCSamples[iSample].nxsec_spline_pointers[iEvent];iSpline++) {
-		splineweight *= *(MCSamples[iSample].xsec_spline_pointers[iEvent][iSpline]);
-      }
+      splineweight *= CalcXsecWeight_Spline(iSample, iEvent);
       //DB Catch negative spline weights and skip any event with a negative event. Previously we would set weight to zere and continue but that is inefficient. Do this on a spline-by-spline basis
       if (splineweight <= 0.){
 		MCSamples[iSample].xsec_w[iEvent] = 0.;
@@ -445,11 +444,8 @@ void samplePDFFDBase::ReWeight_MC_MP() {
 		//ETA - removing this,  
 		//MCSamples[iSample].skdet_w[iEvent] = *(MCSamples[iSample].skdet_pointer[iEvent]);
 
-		//DB Xsec syst
-		//Loop over stored spline pointers
-		for (int iSpline=0;iSpline<MCSamples[iSample].nxsec_spline_pointers[iEvent];iSpline++) {
-		  splineweight *= *(MCSamples[iSample].xsec_spline_pointers[iEvent][iSpline]);
-		}
+
+        splineweight *= CalcXsecWeight_Spline(iSample, iEvent);
 		//std::cout << "Spline weight is " << splineweight << std::endl;
 		//DB Catch negative spline weights and skip any event with a negative event. Previously we would set weight to zere and continue but that is inefficient
 		if (splineweight <= 0.){
@@ -465,7 +461,7 @@ void samplePDFFDBase::ReWeight_MC_MP() {
 		  continue;
 		}
 
-		funcweight = calcFuncSystWeight(iSample,iEvent);
+		funcweight = CalcXsecWeight_Func(iSample,iEvent);
 		//DB Catch negative func weights and skip any event with a negative event. Previously we would set weight to zere and continue but that is inefficient
 		//std::cout << "Func weight is " << funcweight << std::endl;
 		if (funcweight <= 0.){
@@ -582,6 +578,20 @@ void samplePDFFDBase::ReWeight_MC_MP() {
 }
 #endif
 
+
+// ***************************************************************************
+// Calculate the normalisation weight for one event
+double samplePDFFDBase::CalcXsecWeight_Spline(const int iSample, const int iEvent) {
+// ***************************************************************************
+
+  double xsecw = 1.0;
+  //DB Xsec syst
+  //Loop over stored spline pointers
+  for (int iSpline=0;iSpline<MCSamples[iSample].nxsec_spline_pointers[iEvent];iSpline++) {
+    xsecw *= *(MCSamples[iSample].xsec_spline_pointers[iEvent][iSpline]);
+  }
+  return xsecw;
+}
 
 // ***************************************************************************
 // Calculate the normalisation weight for one event

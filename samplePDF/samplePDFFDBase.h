@@ -144,8 +144,6 @@ public:
   virtual void ReconfigureFuncPars(){};
   virtual void CalcFuncPars(int Event){};
 
-  virtual double calcFuncSystWeight(int iSample, int iEvent) = 0;
-
   virtual double ReturnKinematicParameter(KinematicTypes Var, int i, int j) = 0;       //Returns parameter Var for event j in sample i
   virtual std::vector<double> ReturnKinematicParameterBinning(KinematicTypes Var) = 0; //Returns binning for parameter Var
   //ETA - new function to generically convert a string from xsec cov to a kinematic type
@@ -167,9 +165,11 @@ public:
   // Helper function to reset histograms
   inline void ResetHistograms();
 
+  // Calculate the spline weight for a given event
+  double CalcXsecWeight_Spline(const int iSample, const int iEvent);
   // Calculate the norm weight for a given event
   double CalcXsecWeight_Norm(const int iSample, const int iEvent);
-
+  virtual double CalcXsecWeight_Func(int iSample, int iEvent){return 1.;};
   //===============================================================================
   //DB Variables required for getLikelihood
   //

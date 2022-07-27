@@ -189,11 +189,11 @@ class samplePDFND : public samplePDFBase {
       // Calculate the cross-section weight for a given event
       double CalcXsecWeight(const int EventNumber);
       // Calculate the spline weight for a given event
-      // virtual for GPU
-      virtual double CalcXsecWeight_Spline(const int EventNumber);
+      double CalcXsecWeight_Spline(const int EventNumber);
       // Calculate the norm weight for a given event
       double CalcXsecWeight_Norm(const int EventNumber);
-
+      // Calculate the func weight for a given event
+      virtual double CalcXsecWeight_Func(const int EventNumber){return 1.;};
       bool HaveIRandomStart; // Have I random started?
 
       // Pointer to fit manager
@@ -212,14 +212,12 @@ class samplePDFND : public samplePDFBase {
       // what is the maximum number of bins we have
       __int__* maxBins;
 
-
-
       // Struct containing the ND280 information
       std::vector<ND280EVENT> NDEve;
       std::vector<ND280EVENT_AUXILIARY> NDEve_Aux;
 
       // Dimensions of the ith psyche selection (2D or 1D)
-      int* ndims;
+      __int__* ndims;
       // The kinematic type we're plotting
       KinematicTypes **kinvars;
       
@@ -250,12 +248,13 @@ class samplePDFND : public samplePDFBase {
       TObjArray** modeobjarray;
       // do we want mode MC pdf to be save
       bool modepdf;
+      __int__ nModes;
 
       // Struct containing the cross-section info
       XSecStruct<__SPLINE_TYPE__*>* xsecInfo;
 
       // number of cross-section normalisation params?
-      int nxsec_norm_modes;
+      __int__ nxsec_norm_modes;
 
       // Number of spline parameters
       int nSplineParams;
@@ -264,7 +263,7 @@ class samplePDFND : public samplePDFBase {
       std::vector<std::string> splineFileParsNames;
 
       // Number of spline parameters that aren't repeated
-      int nSplineParamsUniq;
+      __int__ nSplineParamsUniq;
       std::vector<int> splineParsUniqIndex;
       std::vector<std::string> splineParsUniqNames;
 

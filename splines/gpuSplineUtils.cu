@@ -1,9 +1,9 @@
-// MaCh3 event-by-event cross-section spline code
+// MaCh3 ND280 cross-section spline code
 // Written by Richard Calland, Asher Kaboth, Clarence Wret
 // 
 // Contains code to run on CUDA GPUs. Essentially we load up stripped TSpline3 objects to the GPU and do the equivalent of TSpline3->Eval(double) for all events
 // Now also supports TF1 evals
-// Called from samplePDF/samplePDFND.cpp -> splines/SplineMonolith.cpp -> splines/gpuSplineUtils.cu
+// Called from samplePDFND2014/samplePDFND2014.cpp -> splines/SplineMonolith.cpp -> splines/gpuSplineUtils.cu
 
 // C i/o  for printf and others
 #include <stdio.h>
@@ -19,7 +19,7 @@
 
 // Hard code the number of splines
 // Not entirely necessary: only used for val_gpu and segment_gpu being device constants. Could move them to not being device constants
-#define __N_SPLINES__ 49
+#define __N_SPLINES__ 48
 
 // CUDA_ERROR_CHECK is now defined in the makefile instead
 //#define CUDA_ERROR_CHECK
@@ -71,7 +71,6 @@ inline void __cudaCheckError( const char *file, const int line ) {
 // d_NAME declares DEVICE constants (live on GPU)
 __device__ __constant__ int d_n_splines;
 __device__ __constant__ int d_spline_size;
-__device__ __constant__ int d_n_params;
 // Constant memory needs to be hard-coded on compile time
 // Could make this texture memory instead, but don't care enough right now...
 __device__ __constant__ float val_gpu[__N_SPLINES__];
@@ -172,7 +171,7 @@ __host__ void CopyToGPU_SepMany(
                             int spline_size) {
 
   if (n_params != __N_SPLINES__) {
-    printf("Number of splines not equal to %i, GPU code for event-by-event splines will fail\n", __N_SPLINES__);
+    printf("Number of splines not equal to %i, GPU code for ND280 splines will fail\n", __N_SPLINES__);
     printf("n_params = %i\n", n_params);
     printf("%s : %i\n", __FILE__, __LINE__);
     exit(-1);
@@ -184,9 +183,6 @@ __host__ void CopyToGPU_SepMany(
   h_spline_size = spline_size;
 
   // Copy the constants
-  // Number of cross-section parameters with splines
-  cudaMemcpyToSymbol(d_n_params,    &h_n_params,    sizeof(h_n_params));
-  CudaCheckError();
   // Total number of valid splines for all loaded events
   cudaMemcpyToSymbol(d_n_splines,   &h_n_splines,   sizeof(h_n_splines));
   CudaCheckError();
@@ -225,7 +221,7 @@ __host__ void CopyToGPU_TF1(
                             int _max_knots) {
 
   if (n_params != __N_SPLINES__) {
-    printf("Number of splines not equal to %i, GPU code for event-by-event splines will fail\n", __N_SPLINES__);
+    printf("Number of splines not equal to %i, GPU code for ND280 splines will fail\n", __N_SPLINES__);
     printf("n_params = %i\n", n_params);
     printf("%s : %i\n", __FILE__, __LINE__);
     exit(-1);
@@ -237,9 +233,6 @@ __host__ void CopyToGPU_TF1(
   h_spline_size = _max_knots;
 
   // Copy the constants
-  // Number of cross-section parameters with splines
-  cudaMemcpyToSymbol(d_n_params,    &h_n_params,    sizeof(h_n_params));
-  CudaCheckError();
   // Total number of valid splines for all loaded events
   cudaMemcpyToSymbol(d_n_splines,   &h_n_splines,   sizeof(h_n_splines));
   CudaCheckError();
@@ -518,7 +511,7 @@ __host__ void RunGPU_SepMany(
 // Run the GPU code for the separate many arrays
 // As in separate {x}, {y,b,c,d} arrays
 // Pass the segment and the parameter values
-// (binary search already performed in samplePDFND::FindSplineSegment()
+// (binary search already performed in samplePDFND2014::FindSplineSegment()
 __host__ void RunGPU_SepMany_seg(
     int* gpu_paramNo_arr,
 

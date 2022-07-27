@@ -1,26 +1,25 @@
 #ifndef SPLINEMONOLITH_H
 #define SPLINEMONOLITH_H
 
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <iomanip>
+// C++ includes
 #include <cstdlib>
+#include <iomanip>
 
-#include <TFile.h>
-#include <TH1F.h>
-#include <TKey.h>
-#include <TString.h>
-#include <TIterator.h>
-#include <TSpline.h>
-#include <TStopwatch.h>
-#include <TCanvas.h>
-#include <TStyle.h>
+// ROOT include
+#include "TFile.h"
+#include "TH1F.h"
+#include "TKey.h"
+#include "TString.h"
+#include "TIterator.h"
+#include "TStopwatch.h"
+#include "TCanvas.h"
+#include "TStyle.h"
 
 #ifdef MULTITHREAD
 #include "omp.h"
 #endif
 
+// MaCh3  includes
 #include "samplePDF/Structs.h"
 
 // Make template class so we can use TF1 and TSpline3
@@ -31,6 +30,8 @@ class SMonolith {
     SMonolith(std::vector< std::vector<TSpline3_red*> > &MasterSpline);
     SMonolith(std::vector< std::vector<TF1*> > &MasterSpline);
     SMonolith(std::vector< std::vector<TF1_red*> > &MasterSpline);
+    SMonolith(std::vector< std::vector<Akima_Spline*> > &MasterSpline);
+    SMonolith(std::vector< std::vector<Monotone_Spline*> > &MasterSpline);
     ~SMonolith();
 
     // This EvalGPU should be used when using two separate x,{y,a,b,c,d} arrays to store the weights; probably the best one here!
@@ -46,19 +47,28 @@ class SMonolith {
 
   private:
     // Function to scan through the MasterSpline of TSpline3
-    void ScanMasterSpline(std::vector<std::vector<TSpline3_red*> > &MasterSpline, unsigned int &NEvents, int &MaxPoints, int &nParams);
+    void ScanMasterSpline(std::vector<std::vector<TSpline3_red*> > &MasterSpline, unsigned int &NEvents, int &MaxPoints, int &nParams, int &nSplines);
     // Function to scan through the MasterSpline of TF1
     void ScanMasterSpline(std::vector<std::vector<TF1_red*> > &MasterSpline, unsigned int &NEvents, int &MaxPoints, int &nParams);
     // Prepare the TSpline3_red objects for the GPU
     void PrepareForGPU(std::vector<std::vector<TSpline3_red*> > &MasterSpline);
+    // Prepare the Monotone Spline objects for the GPU
+    void PrepareForGPU(std::vector<std::vector<Monotone_Spline*> > &MasterSpline);
+    // Prepare the Akima_Spline objects for the GPU
+    void PrepareForGPU(std::vector<std::vector<Akima_Spline*> > &MasterSpline);
+    
     // Prepare the TF1_red objects for the GPU
     void PrepareForGPU(std::vector<std::vector<TF1_red*> > &MasterSpline);
     // Reduced the TSpline3 to TSpline3_red
     std::vector<std::vector<TSpline3_red*> > ReduceTSpline3(std::vector<std::vector<TSpline3*> > &MasterSpline);
+    // Reduced the Akima spline to TSpline3_red
+    std::vector<std::vector<TSpline3_red*> > ReduceAkima(std::vector<std::vector<Akima_Spline*> > &MasterSpline);
+    // Reduced the monotone spline to TSpline3_red
+    std::vector<std::vector<TSpline3_red*> > ReduceMonotone(std::vector<std::vector<Monotone_Spline*> > &MasterSpline);        
     // Reduced the TF1 to TF1_red
     std::vector<std::vector<TF1_red*> > ReduceTF1(std::vector<std::vector<TF1*> > &MasterSpline);
 
-    // This loads up coefficients into two arrays: one x array and one yabcd array
+    // This loads up coefficients into two arrays: one x array and one yabcd array 
     // This should maximize our cache hits!
     inline void getSplineCoeff_SepMany(TSpline3_red* &spl, int &nPoints, float *&xArray, float *&manyArray);
     // Helper function used in the constructor, tests to see if the spline is flat
@@ -75,8 +85,11 @@ class SMonolith {
     int *index;
     // Number of valid splines
     unsigned int NSplines_valid;
-    // Number of total splines we can maximally have
+    // Number of total splines we can maximally have, if each event had the maximum number of splines found across all events
     unsigned int NSplines_total;
+
+    // Number of total splines if each event had every parameter's spline
+    unsigned int NSplines_total_large;
     // CPU arrays to hold monolith and weights
     float *cpu_weights_var;  
 

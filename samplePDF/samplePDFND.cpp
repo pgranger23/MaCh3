@@ -1,5 +1,12 @@
 #include "samplePDFND.h"
 
+
+// Debug this by defining DEBUG_DUMP if you find differences between CPU and GPU weights
+// Warning: will write lots of ROOT files to your directory!
+// Also turns on when DEBUG_ND280_DUMP environment variables is defined
+//#define DEBUG_DUMP
+//#define DEBUG
+
 // ***************************************************************************
 // Alternative constructor to make the sample aware of the manager
 samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
@@ -79,8 +86,15 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
 
   InitExperimentSpecific();
 
-  // Check the preprocessors that have been defined
-  // Can currently only run in verbose DEBUG mode in single thread
+#ifdef CUDA
+std::cout << "- Using ND280 GPU version " << std::endl;
+  #ifdef DEBUG_DUMP
+  badWeight = 0;
+  nReconf = 0;
+  #endif
+#endif
+// Check the preprocessors that have been defined
+// Can currently only run in verbose DEBUG mode in single thread
 #if DEBUG > 0
     #ifdef MULTITHREAD
     #pragma omp parallel
@@ -155,6 +169,9 @@ samplePDFND::~samplePDFND() {
 
   if (XsecCov)  delete XsecCov;
   if (NDDetCov) delete NDDetCov;
+#ifdef CUDA
+  delete splineMonolith;
+#endif
 }
 
 // ***************************************************************************
@@ -1234,7 +1251,41 @@ double samplePDFND::CalcXsecWeight(const int i) {
    return xsecw;
  }
 
- #if USE_SPLINE >= USE_TF1
+
+
+#ifdef CUDA
+// *********************************************
+// Calculate cross-section weights for using GPU
+double samplePDFNDGPU::CalcXsecWeight_Spline(const int i) {
+  // *********************************************
+  double xsecw = 1.;
+  // Loop over the spline parameters and get their responses
+  for (int id = 0; id < nSplineParams; id++) {
+#ifdef DEBUG
+    if (std::isnan(xsecw)) {
+      std::cerr << "Found nan xsecw, event " << i << ", spline " << splineParsNames[id] << std::endl;
+      throw;
+    }
+#endif
+    xsecw *= splineMonolith->cpu_weights[i*nSplineParams+id];
+    //KS: if weight is less then 0 there is no need to make spline any further
+    //we can just return 0 and save some precious CPU time
+    if (xsecw <= 0)
+    {
+        return 0;
+    //std::cerr << "Found negative xsecw, event " << i << ", spline " << splineParsNames[id] << " = " << xsecw << std::endl;
+    }
+  } // end the k loop
+
+  // If we're debugging check CPU and GPU weight
+#ifdef DEBUG_DUMP
+  CompareCPU_GPU_Splines(i);
+#endif
+  return xsecw;
+} // end CalcXsecWeight_Spline
+
+#else
+  #if USE_SPLINE >= USE_TF1
 // ***************************************************************************
 // Calculate the TF1 weight for one event i
 double samplePDFND::CalcXsecWeight_Spline(const int i) {
@@ -1251,12 +1302,12 @@ double samplePDFND::CalcXsecWeight_Spline(const int i) {
        double xvar = XsecCov->calcReWeight(GlobalIndex);
        // Calculate xsecw by evaluating the TF1
        xsecw *= xsecInfo[i].Eval(id, xvar);
- #ifdef DEBUG
+  #ifdef DEBUG
        if (std::isnan(xsecw)) {
          std::cerr << "Found nan xsecw, event " << i << ", spline " << splineParsNames[id] << std::endl;
          throw;
        }
-#endif
+  #endif
        //KS: if weight is less then 0 there is no need to make spline any further
        //we can just return 0 and save some precious CPU time
        if (xsecw <= 0) 
@@ -1269,7 +1320,7 @@ double samplePDFND::CalcXsecWeight_Spline(const int i) {
    return xsecw;
  }
 
- #else
+  #else
 // ***************************************************************************
 // Calculate the spline weight for one event i
 double samplePDFND::CalcXsecWeight_Spline(const int i) {
@@ -1294,8 +1345,9 @@ double samplePDFND::CalcXsecWeight_Spline(const int i) {
    } // End the for loop
    return xsecw;
  }
- #endif
- 
+  #endif
+#endif
+
 // ***************************************************************************
 // Calculate the normalisation weight for one event
 double samplePDFND::CalcXsecWeight_Norm(const int i) {
@@ -2478,15 +2530,91 @@ void samplePDFND::FindSplineSegment() {
 }
 #endif
 
+#ifdef CUDA
+// *************************************************
+// Prepare the weights before the reweight loop starts
+// For GPU accelerated code this means passing variations to the GPU, calculating the weights on the GPU, and passing them back to memory
+void samplePDFND::PrepareWeights() {
+  // *************************************************
+
+  #if USE_SPLINE < USE_TF1
+  // With NIWG 2018a the parameters there's a parameter mapping that goes from spline parameter to a global parameter index
+  // Find the spline segments
+  FindSplineSegment();
+
+  // This way we avoid doing 1.2M+ binary searches on the GPU
+  // and literally just multiply lots of numbers together on the GPU without any algorithm
+  for (int i = 0; i < nSplineParams; ++i) {
+    // Update the values and which segment it belongs to
+    vals[i] = XsecCov->calcReWeight(splineParsIndex[i]);
+    segments[i] = SplineInfoArray[i].CurrSegment;
+  }
+  // Call the GPU code through the SplineMonolith class
+  splineMonolith->EvalGPU_SepMany_seg(vals, segments);
+  #else
+  // Feed the parameter variations
+  for (int i = 0; i < nSplineParams; ++i) {
+    // Update the values and which segment it belongs to
+    vals[i] = XsecCov->calcReWeight(splineParsIndex[i]);
+  }
+  splineMonolith->EvalGPU_TF1(vals);
+  #endif
+
+  #ifdef DEBUG_DUMP
+  // Write to file
+  std::stringstream ss;
+  ss << "Reweight_" << nReconf;
+  DebugFile->cd();
+  TDirectory *NewDir = DebugFile->mkdir(ss.str().c_str());
+  NewDir->cd();
+
+  for (int j = 0; j < nSplineParams; ++j) {
+
+    // Save the parameter variation in the title
+    std::stringstream paramval;
+    paramval << "_" << vals[j];
+    std::string restoregpuname = std::string(gpu_weights_plot[j]->GetName());
+    std::string restorecpuname = std::string(cpu_weights_plot[j]->GetName());
+    std::string restorediffname = std::string(diff_weights_plot[j]->GetName());
+
+    gpu_weights_plot[j]->SetTitle((std::string(gpu_weights_plot[j]->GetTitle())+"_"+paramval.str()).c_str());
+    cpu_weights_plot[j]->SetTitle((std::string(cpu_weights_plot[j]->GetTitle())+"_"+paramval.str()).c_str());
+    diff_weights_plot[j]->SetTitle((std::string(diff_weights_plot[j]->GetTitle())+"_"+paramval.str()).c_str());
+
+    gpu_weights_plot[j]->Write();
+    cpu_weights_plot[j]->Write();
+    diff_weights_plot[j]->Write();
+
+    gpu_weights_plot[j]->Reset();
+    cpu_weights_plot[j]->Reset();
+    diff_weights_plot[j]->Reset();
+
+    gpu_weights_plot[j]->SetTitle(restoregpuname.c_str());
+    cpu_weights_plot[j]->SetTitle(restorecpuname.c_str());
+    diff_weights_plot[j]->SetTitle(restorediffname.c_str());
+  }
+
+  nReconf++;
+  if (nReconf > 50) {
+    std::cerr << "I've counted " << nReconf << " reconfigures" << std::endl;
+    std::cerr << "Since DEBUG_DUMP saves ROOT files for every reconfigure I doubt you wan't more!" << std::endl;
+    std::cerr << "Found " << badWeight << " bad weights" << std::endl;
+    DebugFile->Close();
+    throw;
+  }
+  #endif
+}
+#else
 // *************************
 // Prepare the weights before the reweight loop starts
 void samplePDFND::PrepareWeights() {
 // *************************
 // Find the relevant spline segments for these parameter variations
-#if USE_SPLINE < USE_TF1
+  #if USE_SPLINE < USE_TF1
   FindSplineSegment();
-#endif
+  #endif
 }
+#endif
 
 // *************************
 void samplePDFND::GetKinVars(int Sample, KinematicTypes &TypeX, KinematicTypes &TypeY) {
@@ -2566,4 +2694,154 @@ void samplePDFND::ResetHistograms() {
 } // end function
 
 
+#ifdef CUDA
+// *********************************************
+// Fill the GPU with splines
+void samplePDFND::fillGPUSplines() {
+// *********************************************
+
+  // Can pass the spline segments to the GPU instead of the values
+  // Make these here and only refill them for each loop, avoiding unnecessary new/delete on each reconfigure
+#if USE_SPLINE < USE_TF1
+  segments = new int[nSplineParams]();
+#endif
+  vals = new float[nSplineParams]();
+
+  // Make a vector of all the vectors of TSpline3 pointers
+  // Makes life slightly easier than passing 17 arguments and having different SMonolith constructors
+  std::vector< std::vector<__SPLINE_TYPE__*> > MasterSpline;
+
+  // The order we want in the master spline is [event][splinenumber]
+  // Push back all the sweet splines for each event into one big vector
+  for (unsigned int i = 0; i < nEvents; ++i) {
+    // Make a vector of the pointers for each event
+    std::vector<__SPLINE_TYPE__*> TempVector;
+    for (int j = 0; j < nSplineParams; ++j) {
+      TempVector.push_back(xsecInfo[i].GetFunc(j));
+    } // End the for loop over splines
+    MasterSpline.push_back(TempVector);
+  }
+
+  // Now pass the master spline to the GPU preparer
+  splineMonolith = new SMonolith(MasterSpline);
+
+  // Now need to reset the xsecInfo to match the MasterSpline
+#ifdef MULTITHREAD
+#pragma omp parallel for
+#endif
+  for (unsigned int i = 0; i < nEvents; ++i) {
+    // Make a vector of the pointers for each event
+    for (int j = 0; j < nSplineParams; ++j) {
+      xsecInfo[i].SetFunc(j, MasterSpline[i][j]);
+    } // End the for loop over splines
+  }
+
+  // Make TH1D which logs differences in CPU and GPU weights for each reconfigure
+#ifdef DEBUG_DUMP
+  std::string title = FitManager->getOutputFilename();
+  title += "_GPUweights.root";
+  DebugFile = new TFile(title.c_str(), "RECREATE");
+
+  gpu_weights_plot = new TH1D*[nSplineParams];
+  cpu_weights_plot = new TH1D*[nSplineParams];
+  diff_weights_plot = new TH1D*[nSplineParams];
+  for (int i = 0; i < nSplineParams; ++i) {
+    gpu_weights_plot[i] = new TH1D((splineParsNames[i]+"_GPU").c_str(), (splineParsNames[i]+"_GPU").c_str(), nEvents, 0, nEvents);
+    cpu_weights_plot[i] = new TH1D((splineParsNames[i]+"_CPU").c_str(), (splineParsNames[i]+"_CPU").c_str(), nEvents, 0, nEvents);
+    diff_weights_plot[i] = new TH1D((splineParsNames[i]+"_diff").c_str(), (splineParsNames[i]+"_diff").c_str(), nEvents, 0, nEvents);
+
+    gpu_weights_plot[i]->GetXaxis()->SetTitle("Event number");
+    gpu_weights_plot[i]->GetYaxis()->SetTitle("Weight");
+    cpu_weights_plot[i]->GetXaxis()->SetTitle(gpu_weights_plot[i]->GetXaxis()->GetTitle());
+    cpu_weights_plot[i]->GetYaxis()->SetTitle(gpu_weights_plot[i]->GetYaxis()->GetTitle());
+    diff_weights_plot[i]->GetXaxis()->SetTitle(gpu_weights_plot[i]->GetXaxis()->GetTitle());
+    diff_weights_plot[i]->GetYaxis()->SetTitle("CPU - GPU weight");
+  }
+  // Clean up the memory if we aren't debugging
+#else
+  CleanUpMemory();
+#endif
+}
+
+#ifdef DEBUG_DUMP
+// **************************************
+// Compare the CPU and GPU weights
+// Since we have both CPU and GPU splines in memory we might as well check they are the same!
+void samplePDFND::CompareCPU_GPU_Splines(const int EventNumber) {
+  // **************************************
+
+  double CPU_weight = -1.0;
+  double GPU_weight = -1.0;
+
+  // Need to loop over the spline parameter
+  for (int id = 0; id < nSplineParams; ++id) {
+    // Get the splines
+    __SPLINE_TYPE__ *spl = xsecInfo[EventNumber].GetFunc(id);
+    // If this is a NULL pointer we don't have a spline so continue
+    if (spl == NULL) continue;
+
+    // Get the variation for this spline parameter ID
+    const int GlobalIndex = splineParsIndex[id];
+    const double var = XsecCov->calcReWeight(GlobalIndex);
+
+    // Write the CPU and GPU weights
+    GPU_weight = splineMonolith->cpu_weights[EventNumber*nSplineParams+id];
+    CPU_weight = spl->Eval(var);
+    double diff = (CPU_weight - GPU_weight);
+
+    gpu_weights_plot[id]->SetBinContent(EventNumber, GPU_weight);
+    cpu_weights_plot[id]->SetBinContent(EventNumber, CPU_weight);
+    diff_weights_plot[id]->SetBinContent(EventNumber, diff);
+
+    if (diff > 1.E-5) {
+      badWeight++;
+      std::cerr << "Found difference in splines greater than 1E-5!" << std::endl;
+
+      std::cerr << "   Event no:      " << EventNumber << std::endl;
+      std::cerr << "   Event mode:    " << MaCh3mode_ToString((MaCh3_Mode)xsecInfo[EventNumber].mode) << std::endl;
+      std::cerr << "   Event species: " << xsecInfo[EventNumber].species << std::endl;
+
+      std::cerr << "   Parameter:     " << splineParsNames[id] << std::endl;
+      std::cerr << "   Variation:     " << var << std::endl;
+      std::cerr << "   CPU_weight:    " << CPU_weight << std::endl;
+      std::cerr << "   GPU_weight:    " << GPU_weight << std::endl;
+      std::cerr << "   Diff:          " << diff << std::endl;
+
+#if USE_SPLINE < USE_TF1
+      std::cerr << "   Segment:       " << SplineInfoArray[id].CurrSegment << std::endl;
+      std::cerr << "   Segment spl:   " << spl->FindX(var) << std::endl;
+#else
+      std::cerr << "   Coeffs:        " << std::endl;
+      spl->Print();
+#endif
+      std::cerr << "   " << badWeight << " weights bad so far" << std::endl;
+      std::cerr << "   On " << nReconf << " reweights so far" << std::endl;
+    }
+  }
+}
+#endif
+
+// *************************************
+// Helper function to clean up the splines which we've now got stores on the GPU
+void samplePDFND::CleanUpMemory() {
+// *************************************
+#ifndef DEBUG_DUMP
+  // Delete all the TSpline3 memory allocated since this now lives on the GPU and is no longer needed on the GPU
+#ifdef MULTITHREAD
+#pragma omp parallel for
+#endif
+  for (unsigned int i = 0; i < nEvents; ++i) {
+    for (int j = 0; j < nSplineParams; ++j) {
+      // Delete the allocated memory
+      if (xsecInfo[i].GetFunc(j) != NULL) {
+        delete xsecInfo[i].GetFunc(j);
+      }
+      // Set the memory to NULL
+      __SPLINE_TYPE__* Temp = NULL;
+      xsecInfo[i].SetFunc(j, Temp);
+    }
+  }
+#endif
+}
+#endif
 

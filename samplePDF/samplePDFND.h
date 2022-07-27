@@ -69,7 +69,9 @@
 // Include the manager for an alternate constructor
 #include "manager/manager.h"
 
- 
+#ifdef CUDA
+#include "splines/SplineMonolith.h"
+#endif
 
 class samplePDFND : public samplePDFBase {
   public:
@@ -133,6 +135,12 @@ class samplePDFND : public samplePDFBase {
 
       void printRates(bool dataonly = false);
 
+#ifdef CUDA
+      void fillGPUSplines();
+      // The monolith
+      SMonolith *splineMonolith;
+#endif
+
   protected:
       //KS: Find Detector bin, hist bin and other useful information using multithreading
       inline void FindAdditionalInfo();
@@ -145,11 +153,9 @@ class samplePDFND : public samplePDFBase {
       inline void FindNormPointer();
 
       // Reserve spline memory 
-      // Virtual for GPU
       void ReserveMemory(int nEve);
       // Prepare weights
-      // virtual for GPU
-      virtual void PrepareWeights();
+      void PrepareWeights();
 
       inline void LoadSamples();
 
@@ -263,6 +269,26 @@ class samplePDFND : public samplePDFBase {
       // Bit-field comparison
       std::vector<int> xsecBitField;
       std::vector<int> linearsplines;
+
+#ifdef CUDA
+      // Clean up the memory temporarily allocated for GPU preparation
+      inline void CleanUpMemory();
+      #ifdef DEBUG_DUMP
+      void CompareCPU_GPU_Splines(const int EventNumber);
+      // Holds the CPU and GPU weights
+      TFile *DebugFile;
+      TH1D** gpu_weights_plot;
+      TH1D** cpu_weights_plot;
+      TH1D** diff_weights_plot;
+      int badWeight;
+      int nReconf;
+      #endif
+
+      #if USE_SPLINE < USE_TF1
+      int *segments;
+      #endif
+      float *vals;
+#endif
 
       //WARNING T2K Specyfic
       /*

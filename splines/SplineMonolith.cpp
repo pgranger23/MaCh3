@@ -131,6 +131,26 @@ SMonolith::SMonolith(std::vector<std::vector<TF1*> > &MasterSpline) {
 }
 
 // *****************************************
+// constructor for monotone spline 
+SMonolith::SMonolith(std::vector<std::vector<Monotone_Spline*> > &MasterSpline) {
+// *****************************************
+  std::cout << "Using Monotone spline, about to convert it to TSpline3_red and send to GPU" << std::endl;
+  // Convert the Monotone pointers to the reduced form and call the reduced constructor
+  std::vector<std::vector<TSpline3_red*> > ReducedSpline = ReduceMonotone(MasterSpline);
+  PrepareForGPU(ReducedSpline);
+}
+
+// *****************************************
+// constructor for akima spline vector
+SMonolith::SMonolith(std::vector<std::vector<Akima_Spline*> > &MasterSpline) {
+// *****************************************
+  std::cout << "Using Akima spline, about to convert it to TSpline3_red and send to GPU" << std::endl;
+  // Convert the Akima pointers to the reduced form and call the reduced constructor
+  std::vector<std::vector<TSpline3_red*> > ReducedSpline = ReduceAkima(MasterSpline);
+  PrepareForGPU(ReducedSpline);
+}
+
+// *****************************************
 // Uses a fifth order polynomial for most shape except 2p2h shape C/O which are two superimposed linear eq
 // Reduce first
 SMonolith::SMonolith(std::vector<std::vector<TF1_red*> > &MasterSpline) {
@@ -139,6 +159,7 @@ SMonolith::SMonolith(std::vector<std::vector<TF1_red*> > &MasterSpline) {
   // Convert the TSpline3 pointers to the reduced form and call the reduced constructor
   PrepareForGPU(MasterSpline);
 }
+
 
 // *****************************************
 // The shared initialiser from constructors of TSpline3 and TSpline3_red
@@ -149,17 +170,21 @@ void SMonolith::PrepareForGPU(std::vector<std::vector<TSpline3_red*> > &MasterSp
   unsigned int NEvents = 0;
   _max_knots = 0;
   nParams = 0;
-  ScanMasterSpline(MasterSpline, NEvents, _max_knots, nParams);
+  int nSplines = 0;
+  ScanMasterSpline(MasterSpline, NEvents, _max_knots, nParams, nSplines);
   std::cout << "Found " << NEvents << " events" << std::endl;
   std::cout << "Found " << _max_knots << " knots at max" << std::endl;
   std::cout << "Found " << nParams << " parameters" << std::endl;
+  std::cout << "Found " << nSplines << " maximum number of splines in an event" << std::endl;
 
   // Total number of events in our Spline, read from TSpline3 entries
-  // Number of TSpline3 we have in total (17 per event if each event has all splines; very unlikely, which is why we make a smaller array further down after the for loop over all events)
-  NSplines_total = NEvents * nParams;
+  // Number of TSpline3 we have in total if each event had the maximal number of splines (nSplines written by ScanMasterSpline)
+  NSplines_total = NEvents * nSplines;
+  // Number of TSpline3 we have in total if each event has *EVERY* spline. Needed for some arrays
+  NSplines_total_large = NEvents*nParams;
 
-  // Every event has this many TSpline3 points if it had ALL parameters
-  unsigned int event_size = _max_knots * nParams;
+  // Every event has this many TSpline3 points if it had max spline parameters
+  unsigned int event_size = _max_knots * nSplines;
 
   // Declare the {x}, {y,b,c,d} arrays for all possible splines which the event has
   // We'll filter off the flat and "disabled" (e.g. CCQE event should not have MARES spline) ones in the next for loop, but need to declare these beasts here
@@ -181,16 +206,22 @@ void SMonolith::PrepareForGPU(std::vector<std::vector<TSpline3_red*> > &MasterSp
   int *paramNo_big = new int[NSplines_total];
 
   // This holds the index of each spline
-  index = new int[NSplines_total];
+  index = new int[NSplines_total_large];
   // This holds the total CPU weights that gets read in samplePDFND201x
-  cpu_weights = new float[NSplines_total];
+  cpu_weights = new float[NSplines_total_large];
 
   // Set index array and number of points arrays to something silly, again to be safe...
 #ifdef MULTITHREAD
 #pragma omp parallel for
 #endif
-  for (unsigned int j = 0; j < NSplines_total; j++) {
+  for (unsigned int j = 0; j < NSplines_total_large; j++) {
     index[j] = -1;
+  }
+
+#ifdef MULTITHREAD
+#pragma omp parallel for
+#endif
+  for (unsigned int j = 0; j < NSplines_total; j++) {
     paramNo_big[j] = -1;
   }
 
@@ -198,11 +229,14 @@ void SMonolith::PrepareForGPU(std::vector<std::vector<TSpline3_red*> > &MasterSp
   // We get one x, one y, one b,... for each point, so only need to be _max_knots big
   float *x_tmp = new float[_max_knots]();
   float *many_tmp = new float[_max_knots*4]();
+  // Number of valid splines in total for our entire ensemble of events
   NSplines_valid = 0;
 
   std::vector<std::vector<TSpline3_red*> >::iterator OuterIt;
   std::vector<TSpline3_red*>::iterator InnerIt;
+  // Count the number of events
   unsigned int EventCounter = 0;
+
   // Loop over events and extract the spline coefficients
   for (OuterIt = MasterSpline.begin(); OuterIt != MasterSpline.end(); ++OuterIt, ++EventCounter) {
     // Structure of MasterSpline is std::vector<std::vector<TSpline3*>>
@@ -280,6 +314,7 @@ void SMonolith::PrepareForGPU(std::vector<std::vector<TSpline3_red*> > &MasterSp
         std::cerr << "***** BAD Y B C OR D!!! *****" << std::endl;
         std::cerr << "Indicates bad reading and stripping back of splines pre-GPU" << std::endl;
         std::cerr << "j = " << j << " k = " << k << std::endl;
+        std::cerr << "params: ("<<coeff_many_big[j*4]<<", "<<coeff_many_big[j*4+1]<<", "<<coeff_many_big[j*4+2]<<", "<<coeff_many_big[j*4+3]<<")"<< std::endl;
         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
         std::cerr << "*****************************" << std::endl;
         throw;
@@ -299,7 +334,7 @@ void SMonolith::PrepareForGPU(std::vector<std::vector<TSpline3_red*> > &MasterSp
   delete[] coeff_many_big;
 
   // Print some info; could probably make this to a separate function
-  std::cout << "--- INITIALISED EVENT-BY-EVENT SPLINES {X}, {YBCD} ARRAYS ---" << std::endl;
+  std::cout << "--- INITIALISED ND280 2018 {X}, {YBCD} ARRAYS ---" << std::endl;
   std::cout << "  " << NEvents << " events with " << NSplines_valid << " splines" << std::endl;
 
   std::cout << "  On average " << float(NSplines_valid)/float(NEvents) << " splines per event (" << NSplines_valid << "/" << NEvents << ")" << std::endl;
@@ -505,7 +540,7 @@ void SMonolith::PrepareForGPU(std::vector<std::vector<TF1_red*> > &MasterSpline)
   delete[] coeffs_big;
 
   // Print some info; could probably make this to a separate function
-  std::cout << "--- INITIALISED EVENT-BY-EVENT SPLINES TF1 ARRAYS ---" << std::endl;
+  std::cout << "--- INITIALISED ND280 2018 TF1 ARRAYS ---" << std::endl;
   std::cout << "  " << NEvents << " events with " << NSplines_valid << " splines" << std::endl;
 
   std::cout << "  On average " << float(NSplines_valid)/float(NEvents) << " splines per event (" << NSplines_valid << "/" << NEvents << ")" << std::endl;
@@ -567,7 +602,7 @@ void SMonolith::PrepareForGPU(std::vector<std::vector<TF1_red*> > &MasterSpline)
 // Need to specify template functions in header
 // *****************************************
 // Scan the master spline to get the maximum number of knots in any of the TSpline3*
-void SMonolith::ScanMasterSpline(std::vector<std::vector<TSpline3_red*> > & MasterSpline, unsigned int &nEvents, int &MaxPoints, int &nParams) {
+void SMonolith::ScanMasterSpline(std::vector<std::vector<TSpline3_red*> > & MasterSpline, unsigned int &nEvents, int &MaxPoints, int &nParams, int &nSplines) {
   // *****************************************
 
   // Need to extract: the total number of events
@@ -576,12 +611,16 @@ void SMonolith::ScanMasterSpline(std::vector<std::vector<TSpline3_red*> > & Mast
   MaxPoints = 0;
   nEvents   = 0;
   nParams   = 0;
+  nSplines = 0;
 
   std::vector<std::vector<TSpline3_red*> >::iterator OuterIt;
   std::vector<TSpline3_red*>::iterator InnerIt;
 
   // Check the number of events
   nEvents = MasterSpline.size();
+
+  // Maximum number of splines one event can have (scan through and find this number)
+  int nMaxSplines_PerEvent = 0;
 
   unsigned int EventCounter = 0;
   // Loop over each parameter
@@ -599,6 +638,7 @@ void SMonolith::ScanMasterSpline(std::vector<std::vector<TSpline3_red*> > & Mast
     }
     nParams = (*OuterIt).size();
 
+    int nSplines_SingleEvent = 0;
     // Loop over each pointer
     for (InnerIt = OuterIt->begin(); InnerIt != OuterIt->end(); ++InnerIt) {
       if ((*InnerIt) == NULL) continue;
@@ -606,9 +646,12 @@ void SMonolith::ScanMasterSpline(std::vector<std::vector<TSpline3_red*> > & Mast
       if (nPoints > MaxPoints) {
         MaxPoints = nPoints;
       }
+      nSplines_SingleEvent++;
     }
+    if (nSplines_SingleEvent > nMaxSplines_PerEvent) nMaxSplines_PerEvent = nSplines_SingleEvent;
     EventCounter++;
   }
+  nSplines = nMaxSplines_PerEvent;
 }
 
 // Need to specify template functions in header
@@ -699,7 +742,7 @@ std::vector<std::vector<TSpline3_red*> > SMonolith::ReduceTSpline3(std::vector<s
     for (InnerIt = OuterIt->begin(); InnerIt != OuterIt->end(); ++InnerIt, ++InnerCounter) {
       // Here's our delicious TSpline3 object
       TSpline3 *spline = (*InnerIt);
-      // Now make the reduced TSpline3 pointer (which deleted TSpline3)
+      // Now make the reduced TSpline3 pointer
       TSpline3_red *red = NULL;
       if (spline != NULL) {
         red = new TSpline3_red(spline);
@@ -713,6 +756,83 @@ std::vector<std::vector<TSpline3_red*> > SMonolith::ReduceTSpline3(std::vector<s
   // Now have the reduced vector
   return ReducedVector;
 }
+
+// *********************************
+// convert Monotone_Spline vector to TSpline3_red
+std::vector<std::vector<TSpline3_red*> > SMonolith::ReduceMonotone(std::vector<std::vector<Monotone_Spline*> > &MasterSpline) {
+  // *********************************
+  std::vector<std::vector<Monotone_Spline*> >::iterator OuterIt;
+  std::vector<Monotone_Spline*>::iterator InnerIt;
+
+  // The return vector
+  std::vector<std::vector<TSpline3_red*> > ReducedVector;
+  ReducedVector.reserve(MasterSpline.size());
+
+  // Loop over each parameter
+  int OuterCounter = 0;
+  for (OuterIt = MasterSpline.begin(); OuterIt != MasterSpline.end(); ++OuterIt, ++OuterCounter) {
+    // Make the temp vector
+    std::vector<TSpline3_red*> TempVector;
+    TempVector.reserve(OuterIt->size());
+    int InnerCounter = 0;
+    // Loop over each TSpline3 pointer
+    for (InnerIt = OuterIt->begin(); InnerIt != OuterIt->end(); ++InnerIt, ++InnerCounter) {
+      // Here's our delicious TSpline3 object
+      Monotone_Spline *spline = (*InnerIt);
+      // Now make the reduced TSpline3 pointer
+      TSpline3_red *red = NULL;
+      if (spline != NULL) {
+        red = spline->ConstructTSpline3_red();
+        (*InnerIt) = spline; 
+      }
+      // Push back onto new vector
+      TempVector.push_back(red);
+    } // End inner for loop
+    ReducedVector.push_back(TempVector);
+  } // End outer for loop
+  // Now have the reduced vector
+  return ReducedVector;
+}
+
+
+// *********************************
+// convert Akima_Spline vector to TSpline3_red
+std::vector<std::vector<TSpline3_red*> > SMonolith::ReduceAkima(std::vector<std::vector<Akima_Spline*> > &MasterSpline) {
+  // *********************************
+  std::vector<std::vector<Akima_Spline*> >::iterator OuterIt;
+  std::vector<Akima_Spline*>::iterator InnerIt;
+
+  // The return vector
+  std::vector<std::vector<TSpline3_red*> > ReducedVector;
+  ReducedVector.reserve(MasterSpline.size());
+
+  // Loop over each parameter
+  int OuterCounter = 0;
+  for (OuterIt = MasterSpline.begin(); OuterIt != MasterSpline.end(); ++OuterIt, ++OuterCounter) {
+    // Make the temp vector
+    std::vector<TSpline3_red*> TempVector;
+    TempVector.reserve(OuterIt->size());
+    int InnerCounter = 0;
+    // Loop over each TSpline3 pointer 
+    for (InnerIt = OuterIt->begin(); InnerIt != OuterIt->end(); ++InnerIt, ++InnerCounter) {
+      // Here's our delicious TSpline3 object
+      Akima_Spline *spline = (*InnerIt);
+      // Now make the reduced TSpline3 pointer (which deleted TSpline3)
+      TSpline3_red *red = NULL;
+
+      if (spline != NULL) {
+        red = spline->ConstructTSpline3_red(); 
+        (*InnerIt) = spline;
+      }
+      // Push back onto new vector
+      TempVector.push_back(red);
+    } // End inner for loop
+    ReducedVector.push_back(TempVector);
+  } // End outer for loop
+  // Now have the reduced vector
+  return ReducedVector;
+}
+
 
 // *********************************
 // Reduce the large TF1 vector to a TF1_red
@@ -794,6 +914,15 @@ void SMonolith::getSplineCoeff_SepMany(TSpline3_red* &spl, int &nPoints, float *
     manyArray[i*4+1] = float(b);
     manyArray[i*4+2] = float(c);
     manyArray[i*4+3] = float(d);
+    
+    if((xArray[i] == -999) | (manyArray[i*4] == -999) | (manyArray[i*4+1] == -999) | (manyArray[i*4+2] == -999) | (manyArray[i*4+3] == -999)){
+      std::cerr << "*********** Bad params in getSplineCoeff_SepMany() ************"<<std::endl;
+      std::cerr << "pre cast to float (x, y, b, c, d) = "<<x<<", "<<y<<", "<<b<<", "<<c<<", "<<d<<std::endl;
+      std::cerr << "post cast to float (x, y, b, c, d) = "<<xArray[i]<<", "<<manyArray[i*4]<<", "<<manyArray[i*4+1]<<", "<<manyArray[i*4+2]<<", "<<manyArray[i*4+3]<<std::endl;
+      std::cerr << "This will cause problems when preparing for GPU"<<std::endl;
+      std::cerr << "***************************************************************"<<std::endl;
+    
+    }
   }
   // The structure is now xarray  ={x1,x2,x3} 
   //                      manyArr ={y1,y2,y3, b1,b2,b3, c1,c2,c3, d1,d2,d3}
@@ -886,7 +1015,7 @@ void SMonolith::EvalGPU_SepMany(float* val, bool plotWeight) {
 #ifdef MULTITHREAD
 #pragma omp parallel for
 #endif
-  for (unsigned int i = 0; i < NSplines_total; i++) {
+  for (unsigned int i = 0; i < NSplines_total_large; i++) {
     if (index[i] >= 0) {
       cpu_weights[i] = cpu_weights_var[index[i]];
     } else {
@@ -965,7 +1094,7 @@ void SMonolith::EvalGPU_SepMany_seg(float* vals, int *segment, bool plotWeight) 
 #ifdef MULTITHREAD
 #pragma omp parallel for
 #endif
-  for (unsigned int i = 0; i < NSplines_total; i++) {
+  for (unsigned int i = 0; i < NSplines_total_large; i++) {
     if (index[i] >= 0) {
       cpu_weights[i] = cpu_weights_var[index[i]];
     } else {

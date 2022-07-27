@@ -33,7 +33,6 @@
 #include "manager/manager.h"
 //Other
 #include "../Prob3++/BargerPropagator.h"
-#include "libconfig/lib/libconfig.h++"
 
 #define USEBETA 0
 
@@ -182,6 +181,8 @@ public:
   double** samplePDFFD_array;
   //DB Array to be filled in AddData
   double** samplePDFFD_data;
+  // array of weight^2
+  double ** samplePDFFD_w2_array;
   //===============================================================================
 
   //===============================================================================

@@ -84,7 +84,6 @@ class samplePDFBase : public samplePDFInterface
   //Name of Sample
   std::vector<std::string> SampleName;
 
-
   double getLikelihood_kernel(std::vector<double> &data);
   double getTestStatLLH(double data, double mc);
   // Provide a setter for the test-statistic
@@ -99,7 +98,7 @@ class samplePDFBase : public samplePDFInterface
   void setXsecCov(covarianceXsec * const xsec_cov);
 
   // Information about the normliastion parameters
-  std::vector<XsecNorms4> xsec_norms;
+  std::vector<XsecNorms3> xsec_norms;
 
   // Number of function parameters
   int nFuncParams;

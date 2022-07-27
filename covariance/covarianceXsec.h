@@ -40,11 +40,11 @@ class covarianceXsec : public covarianceBase {
     }
 
     // Get functions for Near normalisation parameters
-    const std::vector<XsecNorms4> GetNearNormPars() const{return NearNormParams;}
+    const std::vector<XsecNorms3> GetNearNormPars() const{return NearNormParams;}
     const int                       GetNumNearNormParams() const  {return nNearNormParams;}
 
     // Get functions for Far normalisation parameters
-    const std::vector<XsecNorms4> GetFarNormPars() const{return FarNormParams;}
+    const std::vector<XsecNorms3> GetFarNormPars() const{return FarNormParams;}
 
     // Get functions for Near spline parameters
     const int                       GetNumNearSplineParams() const  {return nNearSplineParams;}
@@ -60,7 +60,7 @@ class covarianceXsec : public covarianceBase {
     const int GetNumSplineParamsFromDetID(int DetID);
 
     //DB Get norm/func parameters depending on given DetID
-    const std::vector<XsecNorms4> GetNormParsFromDetID(int DetID);
+    const std::vector<XsecNorms3> GetNormParsFromDetID(int DetID);
     const int GetNumFuncParamsFromDetID(int DetID);
     const std::vector<std::string> GetFuncParsNamesFromDetID(int DetID);
     const std::vector<int> GetFuncParsIndexFromDetID(int DetID);
@@ -150,14 +150,16 @@ class covarianceXsec : public covarianceBase {
     TObjArray* xsec_param_norm_elem;
     TObjArray* xsec_param_norm_nupdg;
     TObjArray* xsec_param_norm_preoscnupdg;
-    //TObjArray* xsec_param_norm_etru_bnd_low;
-    //TObjArray* xsec_param_norm_etru_bnd_high;
-    //TObjArray* xsec_param_norm_q2_true_bnd_low;
-    //TObjArray* xsec_param_norm_q2_true_bnd_high;
-	TObjArray* xsec_kinematic_type;
-	TVectorT<double> *xsec_kinematic_ub;
-	TVectorT<double> *xsec_kinematic_lb;
+    TObjArray* xsec_param_norm_etru_bnd_low;
+    TObjArray* xsec_param_norm_etru_bnd_high;
+    TObjArray* xsec_param_norm_q2_true_bnd_low;
+    TObjArray* xsec_param_norm_q2_true_bnd_high;
 
+    /* FIXME
+    TObjArray* xsec_kinematic_type;
+    TVectorT<double> *xsec_kinematic_ub;
+    TVectorT<double> *xsec_kinematic_lb;
+    */
     // Here are some array equivalents (actually used in MCMC)
     int **xsec_param_id_a;
     // nominal values in MC
@@ -188,10 +190,10 @@ class covarianceXsec : public covarianceBase {
     int nLowEnergyAtmOnlyNormParams;//DB Needed for consistency check
     int nHighEnergyAtmOnlyNormParams;//DB Needed for consistency check
 
-    std::vector<XsecNorms4> FarNormParams;
+    std::vector<XsecNorms3> FarNormParams;
     int nFarNormParams;
 
-    std::vector<XsecNorms4> NearNormParams;
+    std::vector<XsecNorms3> NearNormParams;
     int nNearNormParams;
 
     // Number of Near spline parameters

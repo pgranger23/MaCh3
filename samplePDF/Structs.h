@@ -1338,12 +1338,13 @@ inline std::string TestStatistic_ToString(TestStatistic i) {
     return name;
 }
 
+
 // ***************************
 // Struct to describe the MaCh3 interaction modes
 //DB Instructions left throughout Structs.{h,cpp} to indicate how to add a new MaCh3 mode and the changes it requires. Any new modes can have splines associated with another mode, for instance the NCoth split into NCMpi and NCDIS, but all three modes have the same spline response. Look for pattern: NewMaCh3Mode
 enum MaCh3_Mode {
   // ***************************
-/*
+
   // CCQE
   kMaCh3_CCQE    = 0,
   // 2p2h
@@ -1384,7 +1385,6 @@ enum MaCh3_Mode {
 
   // Just keep a counter of the number of modes
   kMaCh3_nModes
-  */
 };
 
 // *****************
@@ -1393,7 +1393,7 @@ inline std::string MaCh3mode_ToString(MaCh3_Mode i) {
 // *****************
 
   std::string name = "";
-/*
+
   switch(i) {
     case kMaCh3_CCQE:
       name = "CCQE";
@@ -1445,9 +1445,75 @@ inline std::string MaCh3mode_ToString(MaCh3_Mode i) {
       std::cerr << "Did not find the MaCh3 mode you specified " << i << std::endl;
       name = "UNKNOWN_BAD";
   }
-*/
+
   return name;
 }
+
+// *****************
+// Convert a MaCh3 mode to a string
+inline std::string MaCh3mode_ToFancyString(MaCh3_Mode i) {
+// *****************
+
+  std::string name = "";
+
+  switch(i) {
+    case kMaCh3_CCQE:
+      name = "CCQE";
+      break;
+    case kMaCh3_2p2h:
+      name = "2p2h";
+      break;
+    case kMaCh3_CC1pi0:
+      name = "CC 1#pi^{0}";
+      break;
+    case kMaCh3_CC1pipm:
+      name = "CC 1#pi^{#pm}";
+      break;
+    case kMaCh3_CCcoh:
+      name = "CC coh.";
+      break;
+    case kMaCh3_CCMpi:
+      name = "CC multi-#pi";
+      break;
+    case kMaCh3_CCDIS:
+      name = "CC DIS";
+      break;
+    case kMaCh3_CCMisc: //ETA splitting CCDIS and CCOther for 2019 OA
+      name = "CC Misc";
+      break;
+    case kMaCh3_NC1pi0:
+      name = "NC 1#pi^{0}";
+      break;
+    case kMaCh3_NC1pipm:
+      name = "NC 1#pi^{#pm}";
+      break;
+    case kMaCh3_NCcoh:
+      name = "NC coh.";
+      break;
+    case kMaCh3_NCoth:
+      name = "NC other";
+      break;
+    case kMaCh3_NC1gam:
+      name = "NC 1#gamma";
+      break;
+    case kMaCh3_nModes:
+      name = "Sand #mu";
+      break;
+    case kMaCh3_NCMpi:
+      name = "NC multi-#pi";
+      break;
+    case kMaCh3_NCDIS:
+      name = "NC DIS";
+      break;
+    //DB NewMaCh3Mode: Add case for fancy name of new MaCh3 mode
+    default:
+      std::cerr << "Did not find the MaCh3 mode you specified " << i << std::endl;
+      name = "UNKNOWN_BAD";
+  }
+
+  return name;
+}
+
 // Helper function for calculating unbinned Integral of TH2Poly i.e including overflow
 double OverflowIntegral(TH2Poly*);
 
@@ -1483,8 +1549,6 @@ inline std::string file_exists(std::string filename) {
 
   return filename;
 }
-
-int GetMaCh3Modes();
 
 inline int getValue();
 inline int parseLine(char* line);

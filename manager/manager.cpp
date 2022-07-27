@@ -108,9 +108,9 @@ int manager::readConfig(char *config) {
     // Use Barlow Beeston likelihood in ND280?
     if (cfg.exists("MCSTAT")) {
       std::string likelihood = cfg.lookup("MCSTAT");
-      if (likelihood == "Barlow-Beeston") mc_stat_llh = 1;
-      else if (likelihood == "IceCube")   mc_stat_llh = 2;
-      else if (likelihood == "Poisson")   mc_stat_llh = 0;
+      if (likelihood == "Barlow-Beeston") mc_stat_llh = TestStatistic(kBarlowBeeston);
+      else if (likelihood == "IceCube")   mc_stat_llh = TestStatistic(kIceCube);
+      else if (likelihood == "Poisson")   mc_stat_llh = TestStatistic(kPoisson);
       else { 
         std::cerr << "Wrong form of test-statistic specified!" << std::endl;
         std::cerr << "You gave " << likelihood << " and I only support:" << std::endl;
@@ -120,10 +120,10 @@ int manager::readConfig(char *config) {
         std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
         throw;
       }
-      if (verbosity) std::cout << "- MC stat test statistic specified, using " << likelihood << std::endl;
+      if (verbosity) std::cout << "- MC stat test statistic specified, using " << TestStatistic_ToString(TestStatistic(mc_stat_llh)) << std::endl;
     } else {
-      mc_stat_llh = 0;
-      if (verbosity) std::cout << "- MC stat test statistic not specified, using Poisson" << std::endl;
+      mc_stat_llh = kPoisson;
+      if (verbosity) std::cout << "- MC stat test statistic not specified," << TestStatistic_ToString(TestStatistic(mc_stat_llh)) << std::endl;
     }
 
     if (cfg.exists("USE_UpdateW2")) {
@@ -196,6 +196,15 @@ int manager::readConfig(char *config) {
       PlotByMode = cfg.lookup("PLOT_BY_MODE");
     } else {
       PlotByMode = false;
+    }
+
+    // Parameter using linear interpoilation rather than TSpline3
+    if (cfg.exists("ND_XSEC_LINEAR_SPLINE")) {
+      const libconfig::Setting &root = cfg.getRoot();
+      const libconfig::Setting &setting = root["ND_XSEC_LINEAR_SPLINE"];
+      for (int i = 0; i < int(setting.getLength()); i++) {
+        xsec_linear_spline.push_back(setting[i]);
+      }
     }
 
     // Debug / Summary info

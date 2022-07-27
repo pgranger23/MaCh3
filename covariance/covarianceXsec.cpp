@@ -21,25 +21,40 @@ covarianceXsec::covarianceXsec(const char *name, const char *file, double thresh
   if(!(xsec_param_norm_elem  = (TObjArray*)(infile->Get("xsec_norm_elements")))){std::cerr<<"Can't find xec_norm_elements in xseccov"<<std::endl;throw;}
   if(!(xsec_param_norm_nupdg = (TObjArray*)(infile->Get("xsec_norm_nupdg")))){std::cerr<<"Can't find xec_norm_nupdg in xseccov"<<std::endl;throw;}
   if(!(xsec_param_norm_preoscnupdg = (TObjArray*)(infile->Get("xsec_norm_prod_nupdg")))){std::cerr<<"Can't find xec_norm_prod_nupdg in xseccov"<<std::endl;throw;}
+  if(!(xsec_param_norm_etru_bnd_low = (TObjArray*)(infile->Get("xsec_norm_etru_bnd_low")))){std::cerr<<"Can't find xec_norm_etru_bnd_low in xseccov"<<std::endl;throw;}
+  if(!(xsec_param_norm_etru_bnd_high = (TObjArray*)(infile->Get("xsec_norm_etru_bnd_high")))){std::cerr<<"Can't find xec_norm_etru_bnd_high in xseccov"<<std::endl;throw;}
+  if(!(xsec_param_norm_q2_true_bnd_low = (TObjArray*)(infile->Get("xsec_norm_q2_true_bnd_low")))){std::cerr<<"Can't find xec_norm_q2_true_bnd_low in xseccov"<<std::endl;throw;}
+  if(!(xsec_param_norm_q2_true_bnd_high = (TObjArray*)(infile->Get("xsec_norm_q2_true_bnd_high")))){std::cerr<<"Can't find xec_norm_q2_true_bnd_high in xseccov"<<std::endl;throw;}
+
+
+  //FIXME
   //ETA - adding in string which will then be parsed in samplePDF class into a kinematic variable to cut on
-  if(!(xsec_kinematic_type = (TObjArray*)(infile->Get("xsec_norm_kinematic_type")))){std::cerr<< "[ERROR]::" << __FILE__ << ":" << __LINE__ << " cannot find xsec_kinematic_type in xseccov" << std::endl; throw;}
+  //if(!(xsec_kinematic_type = (TObjArray*)(infile->Get("xsec_norm_kinematic_type")))){std::cerr<< "[ERROR]::" << __FILE__ << ":" << __LINE__ << " cannot find xsec_kinematic_type in xseccov" << std::endl; throw;}
   if(!(xsec_param_fd_spline_modes = (TObjArray*)(infile->Get("fd_spline_modes")))){std::cerr<<"Can't find fd_spline_modes in xseccov"<<std::endl;throw;}
   if(!(xsec_param_fd_spline_names = (TObjArray*)(infile->Get("fd_spline_names")))){std::cerr<<"Can't find fd_spline_names in xseccov"<<std::endl;throw;}
   if(!(xsec_param_nd_spline_names = (TObjArray*)(infile->Get("nd_spline_names")))){std::cerr<<"Can't find nd_spline_names in xseccov"<<std::endl;throw;}
   
   // Check that the size of all the arrays are good
-  if (xsec_param_norm_modes->GetEntries() != xsec_param_norm_elem->GetEntries() || 
+  if (xsec_param_norm_modes->GetEntries() != xsec_param_norm_elem->GetEntries() ||
       xsec_param_norm_modes->GetEntries() != xsec_param_norm_nupdg->GetEntries() ||
       xsec_param_norm_modes->GetEntries() != xsec_param_norm_horncurrents->GetEntries() ||
       xsec_param_norm_modes->GetEntries() != xsec_param_norm_preoscnupdg->GetEntries() ||
-	  xsec_param_norm_modes->GetEntries() != xsec_kinematic_type->GetEntries() ){	
-    std::cerr << "Number of entries in input matrix normalisation parameters is wrong!" << std::endl;
-    std::cerr << "Element GetEntries =    " << xsec_param_norm_elem->GetEntries() << std::endl;
-    std::cerr << "Modes GetEntries =      " << xsec_param_norm_modes->GetEntries() << std::endl;
-    std::cerr << "Horncurrents GetEntries =      " << xsec_param_norm_horncurrents->GetEntries() << std::endl;
-    std::cerr << "Nupdgs GetEntries =      " << xsec_param_norm_nupdg->GetEntries() << std::endl;
-    std::cerr << "Prodnupdgs GetEntries =      " << xsec_param_norm_preoscnupdg->GetEntries() << std::endl;
-	std::cerr << "Kinematic types GetEntries =       " << xsec_kinematic_type->GetEntries() << std::endl;
+      xsec_param_norm_modes->GetEntries() != xsec_param_norm_etru_bnd_low->GetEntries() ||
+      xsec_param_norm_modes->GetEntries() != xsec_param_norm_etru_bnd_high->GetEntries() ||
+      xsec_param_norm_modes->GetEntries() != xsec_param_norm_q2_true_bnd_low->GetEntries() ||
+      xsec_param_norm_modes->GetEntries() != xsec_param_norm_q2_true_bnd_high->GetEntries() ){
+      /*xsec_param_norm_modes->GetEntries() != xsec_kinematic_type->GetEntries() FIXME */
+      std::cerr << "Number of entries in input matrix normalisation parameters is wrong!" << std::endl;
+      std::cerr << "Element GetEntries =    " << xsec_param_norm_elem->GetEntries() << std::endl;
+      std::cerr << "Modes GetEntries =      " << xsec_param_norm_modes->GetEntries() << std::endl;
+      std::cerr << "Horncurrents GetEntries =      " << xsec_param_norm_horncurrents->GetEntries() << std::endl;
+      std::cerr << "Nupdgs GetEntries =      " << xsec_param_norm_nupdg->GetEntries() << std::endl;
+      std::cerr << "Prodnupdgs GetEntries =      " << xsec_param_norm_preoscnupdg->GetEntries() << std::endl;
+      std::cerr << "Etru_bnd_low GetEntries =      " << xsec_param_norm_etru_bnd_low->GetEntries() << std::endl;
+      std::cerr << "Etru_bnd_high GetEntries =      " << xsec_param_norm_etru_bnd_high->GetEntries() << std::endl;
+      std::cerr << "Q2_true_bnd_low GetEntries =      " << xsec_param_norm_q2_true_bnd_low->GetEntries() << std::endl;
+      std::cerr << "Q2_true_bnd_high GetEntries =      " << xsec_param_norm_q2_true_bnd_high->GetEntries() << std::endl;
+      //std::cerr << "Kinematic types GetEntries =       " << xsec_kinematic_type->GetEntries() << std::endl;
     throw;
   }
 
@@ -57,8 +72,9 @@ covarianceXsec::covarianceXsec(const char *name, const char *file, double thresh
   xsec_param_lb     = (TVectorD*)(infile->Get("xsec_param_lb"));
   xsec_param_ub     = (TVectorD*)(infile->Get("xsec_param_ub"));
   xsec_stepscale    = (TVectorD*)(infile->Get("xsec_stepscale"));
-  xsec_kinematic_ub = (TVectorD*)(infile->Get("xsec_norm_kinematic_ub"));
-  xsec_kinematic_lb = (TVectorD*)(infile->Get("xsec_norm_kinematic_lb"));
+  //FIXME
+  //xsec_kinematic_ub = (TVectorD*)(infile->Get("xsec_norm_kinematic_ub"));
+  //xsec_kinematic_lb = (TVectorD*)(infile->Get("xsec_norm_kinematic_lb"));
   TObjArray* objarr_name = (TObjArray*)(infile->Get("xsec_param_names"));
 
   nPars = xsec_param_prior->GetNrows();
@@ -228,19 +244,15 @@ const std::vector<int> covarianceXsec::GetSplineParsIndexFromDetID(int DetID) {
 
 // ********************************************
 // DB Grab the Normalisation parameters for the relevant DetID
-// Eta - I think this doesn't need to be the same as scanParameters, haven't we already got this info??
-const std::vector<XsecNorms4> covarianceXsec::GetNormParsFromDetID(int DetID) {
-  std::vector<XsecNorms4> returnVec;
-  int norm_counter = 0;
+const std::vector<XsecNorms3> covarianceXsec::GetNormParsFromDetID(int DetID) {
+  std::vector<XsecNorms3> returnVec;
 
   for (int i = 0; i < nPars; ++i) {
-    if ((GetXSecParamID(i, 1) & DetID) == DetID) { //If parameter applies to required DetID   
+    if ((GetXSecParamID(i, 1) & DetID) == DetID) { //If parameter applies to required DetID
       if (GetXSecParamID(i, 0) == -1) { //If parameter is implemented as a normalisation
 	std::vector<int> temp;
 
-
-	
-	XsecNorms4 norm;
+	XsecNorms3 norm;
         norm.name=GetParameterName(i);
 
         // Set the mode of the normalisation parameter
@@ -266,7 +278,7 @@ const std::vector<XsecNorms4> covarianceXsec::GetNormParsFromDetID(int DetID) {
         }
         norm.targets=temp;
         temp.clear();
-	
+
         // Set the pdg of the normalisation parameter
         tempVector = (TVectorD*)(xsec_param_norm_nupdg->At(i));
         for (int j = 0; j < tempVector->GetNrows(); ++j) {
@@ -287,33 +299,55 @@ const std::vector<XsecNorms4> covarianceXsec::GetNormParsFromDetID(int DetID) {
 	//We set a bool to see if any bounds exist so we can shortcircuit checking all of them every step
 	bool haskinbounds=false;
 
+        // Set the lower etrue bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_etru_bnd_low->At(i));
+	if (tempVector->GetNrows() > 1) {
+	  std::cerr << "Found a bound array which is longer than 1" << std::endl;
+	  std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+	  std::cerr << "Error: although implemented as an array the lower energy bound should only have one value" << std::endl;
+	  std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        norm.etru_bnd_low=tempVector[0][0];
+	if(norm.etru_bnd_low!=-999)haskinbounds=true;
+
+        // Set the upper etrue bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_etru_bnd_high->At(i));
+	if (tempVector->GetNrows() > 1) {
+	  std::cerr << "Found a bound array which is longer than 1" << std::endl;
+	  std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+	  std::cerr << "Error: although implemented as an array the higher energy bound should only have one value" << std::endl;
+	  std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        norm.etru_bnd_high=tempVector[0][0];
+	if(norm.etru_bnd_high!=-999)haskinbounds=true;
+
+        // Set the lower q2_true bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_q2_true_bnd_low->At(i));
+	if (tempVector->GetNrows() > 1) {
+	  std::cerr << "Found a bound array which is longer than 1" << std::endl;
+	  std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+	  std::cerr << "Error: although implemented as an array the lower energy bound should only have one value" << std::endl;
+	  std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        norm.q2_true_bnd_low=tempVector[0][0];
+	if(norm.q2_true_bnd_low!=-999)haskinbounds=true;
+
+        // Set the upper q2_true bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_q2_true_bnd_high->At(i));
+	if (tempVector->GetNrows() > 1) {
+	  std::cerr << "Found a bound array which is longer than 1" << std::endl;
+	  std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+	  std::cerr << "Error: although implemented as an array the higher energy bound should only have one value" << std::endl;
+	  std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        norm.q2_true_bnd_high=tempVector[0][0];
+	if(norm.q2_true_bnd_high!=-999)haskinbounds=true;
+
 	//IF YOU HAVE NEW KINEMATIC BOUNDS TO LOAD IN PUT THEM HERE
-	// ETA - why do we have to do this twice??
-	
-	////////////////////
-	//New generic cuts things 
-	////////////////////
-	
-	//Only consider the kinematic string and the boundaries if you've actually given it a string to use...
-	if( ((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString().Length() > 0 ){
-	  std::cout << "Found Kinematic bound for parameter " << i << std::endl;
-	  std::cout << "Will apply a cut on " << std::string(((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString()) << std::endl;
-	  std::cout << "With lower bound " << (*xsec_kinematic_lb)(i) << " and upper bound " << (*xsec_kinematic_ub)(i) << std::endl; 
-	  haskinbounds = true;
-
-	  norm.KinematicVarStr.push_back(std::string(((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString()));
-
-	  //ETA - This can be a vector :) can provide different kinematic variables to cut on
-	  std::vector<double> single_selec;
-
-	  //ETA - push back kinematic type with dummy -999 since this needs to be converted into an enum for a kinematic type within
-	  //a samplePDFFD daughter class
-	  single_selec.push_back(-999);
-	  single_selec.push_back((*xsec_kinematic_lb)(i));
-	  single_selec.push_back((*xsec_kinematic_ub)(i));
-
-	  norm.Selection.push_back(single_selec);
-	}
 
 	norm.hasKinBounds=haskinbounds;
 	//End of kinematic bound checking
@@ -322,10 +356,10 @@ const std::vector<XsecNorms4> covarianceXsec::GetNormParsFromDetID(int DetID) {
         norm.index=i;
 	//Add this parameter to the vector of parameters
 	returnVec.push_back(norm);
-	    norm_counter++;
       }
     }
   }
+
 
   return returnVec;
 }
@@ -382,28 +416,23 @@ const std::vector<int> covarianceXsec::GetFuncParsIndexFromDetID(int DetID) {
 }
 // ********************************************
 
-// ********************************************
 // Scan the parameters, e.g. number of spline parameters, functional parameters, Far only parameters, and so on
 void covarianceXsec::scanParameters() {
   // ********************************************
-  
+
   // Should be able to count the normalisation parameters from the covarianceXsec class
   nNearSplineParams     = 0;
   nSplineParamsUniq = 0; //!!decide what to do with this, doesn't currently have an Far analogue
   nNearNormParams       = 0;
   nNearFuncParams       = 0;
   // Parameters that apply to Far only
-  
+
   nFarSplineParams = 0;
   nFarNormParams = 0;
   nFaronlyNormParams = 0;
   nFarFuncParams = 0;
 
-  int norm_counter = -1;
-
   for (int i = 0; i < nPars; ++i) {
-
-
 
     bool isValidDetID = false;
     int DetIDCounter = 0;
@@ -422,22 +451,18 @@ void covarianceXsec::scanParameters() {
       std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
       throw;
     }
-    
+
     if(GetParameterName(i).find("b_")==0)isFlux.push_back(true);
     else isFlux.push_back(false);
-
-	//ETA - adding in a counter for the number of norms as xsec_norm_kinematic_type is only of length of the number of norm parameters
-	//Not sure how this wasn't broken already??
-	if(GetXSecParamID(i, 0) == -1){norm_counter++;} 
 
     // Also make some helper arrays with all the Far parameters, so we have Near parameters, Far parameters, and all parameters
     // These are parameters that have 24 or 25 in ID(i,1), so can be fancy and do a bitwise comparison to 01000
     if ((GetXSecParamID(i, 1) & 24) == 24) {//Far pars
-      
+
       // Now check if it's a spline parameter or not
       if (GetXSecParamID(i, 0) >= 0) {//FarSplinePars
         FarSplineParsNames.push_back(GetParameterName(i));
-	
+
 	//Fill the name of the Far spline objects in the spline files
 	FarSplineFileParsNames.push_back(std::string(((TObjString*)xsec_param_fd_spline_names->At(i))->GetString()));
 
@@ -450,14 +475,13 @@ void covarianceXsec::scanParameters() {
 	}
 	FarSplineModes.push_back(temp);
 	temp.clear();
-	
+
         nFarSplineParams++;
 
         // Or a normalisation parameter
       } //End FarSplinePars
       else if (GetXSecParamID(i, 0) == -1) {//FarNormPars
-		std::cout << "Par " << i << " is a normalisation parameter" << std::endl;
-	XsecNorms4 tmp_xsec;
+	XsecNorms3 tmp_xsec;
         tmp_xsec.name=GetParameterName(i);
 
         // Set the mode of the normalisation parameter
@@ -485,7 +509,7 @@ void covarianceXsec::scanParameters() {
         tmp_xsec.targets=temp;
         temp.clear();
 
-	
+
         // Set the pdg of the normalisation parameter
         tempVector = (TVectorD*)(xsec_param_norm_nupdg->At(i));
         for (int j = 0; j < tempVector->GetNrows(); ++j) {
@@ -508,72 +532,68 @@ void covarianceXsec::scanParameters() {
 	//We set a bool to see if any bounds exist so we can shortcircuit checking all of them every step
 	bool haskinbounds=false;
 
-
-	////////////////////
-	//New generic cuts things 
-	////////////////////
-	
-
-	/*
-	std::cout << "############~~" << std::endl;
-	std::cout << "lb is of size " << xsec_kinematic_lb->GetNrows() << std::endl;
-	std::cout << "############~~" << std::endl;
-
-	std::cout << "############~~" << std::endl;
-	std::cout << "xsec_kinematic_type is of size " << xsec_kinematic_type->GetEntries() << std::endl;
-	std::cout << "############~~" << std::endl;
-
-	std::cout << "##############" << std::endl;
-	std::cout << "xsec_param_norm_modes " << xsec_param_norm_modes->GetEntries() << " and we're on i: " << i << std::endl;
-	std::cout << "##############" << std::endl;
-
-	std::cout << "############~~" << std::endl;
-	std::cout << "xsec_param_norm_preoscnupdf is of size " << xsec_param_norm_preoscnupdg->GetEntries() << " and we're on i: " << i << std::endl;
-	std::cout << "############~~" << std::endl;
-	*/
+        // Set the lower etrue bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_etru_bnd_low->At(i));
+	if (tempVector->GetNrows() > 1) {
+          std::cerr << "Found a bound array which is longer than 1" << std::endl;
+          std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+          std::cerr << "Error: although implemented as an array the lower energy bound should only have one value" << std::endl;
+          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        tmp_xsec.etru_bnd_low=tempVector[0][0];
+	if(tmp_xsec.etru_bnd_low!=-999)haskinbounds=true;
 
 
-	
-	//Only consider the kinematic string and the boundaries if you've actually given it a string to use...
-	if( ((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString().Length() > 0){
-	  std::cout << "Because xsec_kinematic_type was " << ((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString() << std::endl;
-	  haskinbounds = true;
-	  //ETA - This can be a vector :) can provide different kinematic variables to cut on
-	  tmp_xsec.KinematicVarStr.push_back(std::string(((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString()));
+        // Set the upper etrue bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_etru_bnd_high->At(i));
+	if (tempVector->GetNrows() > 1) {
+          std::cerr << "Found a bound array which is longer than 1" << std::endl;
+          std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+          std::cerr << "Error: although implemented as an array the higher energy bound should only have one value" << std::endl;
+          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        tmp_xsec.etru_bnd_high=tempVector[0][0];
+	if(tmp_xsec.etru_bnd_high!=-999)haskinbounds=true;
 
-	  //ETA - This can be a vector :) can provide different kinematic variables to cut on
-	  std::vector<double> single_selec;
 
-	  //ETA - push back kinematic type with dummy -999 since this needs to be converted into an enum for a kinematic type within
-	  //a samplePDFFD daughter class
-	  single_selec.push_back(-999);
-	  single_selec.push_back((*xsec_kinematic_lb)(i));
-	  single_selec.push_back((*xsec_kinematic_ub)(i));
+        // Set the lower q2_true bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_q2_true_bnd_low->At(i));
+	if (tempVector->GetNrows() > 1) {
+          std::cerr << "Found a bound array which is longer than 1" << std::endl;
+          std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+          std::cerr << "Error: although implemented as an array the lower energy bound should only have one value" << std::endl;
+          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        tmp_xsec.q2_true_bnd_low=tempVector[0][0];
+	if(tmp_xsec.q2_true_bnd_low!=-999)haskinbounds=true;
 
-	  tmp_xsec.Selection.push_back(single_selec);
 
-	  std::cout << "Found kinematic bound on " << ((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString() << " from " << single_selec[1] << " to " << single_selec[2] << " for parameter " << i << std::endl;
-	}
-	else{
-	  std::cout << "~~~" << std::endl;
-	  std::cout << "Did not find kinematic bound for param " << i << std::endl;
-	  std::cout << "~~~" << std::endl;
-	}
-
+        // Set the upper q2_true bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_q2_true_bnd_high->At(i));
+	if (tempVector->GetNrows() > 1) {
+          std::cerr << "Found a bound array which is longer than 1" << std::endl;
+          std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+          std::cerr << "Error: although implemented as an array the higher energy bound should only have one value" << std::endl;
+          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        tmp_xsec.q2_true_bnd_high=tempVector[0][0];
+	if(tmp_xsec.q2_true_bnd_high!=-999)haskinbounds=true;
 
 
 	//IF YOU HAVE NEW KINEMATIC BOUNDS TO LOAD IN PUT THEM HERE
 
 	tmp_xsec.hasKinBounds=haskinbounds;
 	//End of kinematic bound checking
-	
+
 
         // Set the global parameter index of the normalisation parameter
         tmp_xsec.index=i;
 	//Add this parameter to the vector of parameters
 	FarNormParams.push_back(tmp_xsec);
-
-	std::cout << "FarNormParams[i].Selections has " << FarNormParams[nFarNormParams].Selection.size() << std::endl;
 
         nFarNormParams++;
 	if (!(GetXSecParamID(i, 1) & 1)) {//non-Near affecting Far affecting norm parameters
@@ -590,7 +610,7 @@ void covarianceXsec::scanParameters() {
     //Near affecting parameters
     if ((GetXSecParamID(i, 1) & 1)) {//Near affecting parameters
       if (GetXSecParamID(i, 0) == -1) {//Near affecting norm pars
-	XsecNorms4 tmp_xsec;
+	XsecNorms3 tmp_xsec;
 
         tmp_xsec.name=GetParameterName(i);
 
@@ -619,7 +639,7 @@ void covarianceXsec::scanParameters() {
         tmp_xsec.targets=temp;
         temp.clear();
 
-	
+
         // Set the pdg of the normalisation parameter
         tempVector = (TVectorD*)(xsec_param_norm_nupdg->At(i));
         for (int j = 0; j < tempVector->GetNrows(); ++j) {
@@ -642,69 +662,87 @@ void covarianceXsec::scanParameters() {
 	//We set a bool to see if any bounds exist so we can shortcircuit checking all of them every step
 	bool haskinbounds=false;
 
-	////////////////////
-	//New generic cuts things 
-	// just the same as for the Far affecting params above
-	////////////////////
-	
-	//Only consider the kinematic string and the boundaries if you've actually given it a string to use...
-	if( ((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString().Length() > 0 ){
-	  haskinbounds = true;
-	  //ETA - This can be a vector :) can provide different kinematic variables to cut on
-	  tmp_xsec.KinematicVarStr.push_back(std::string(((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString()));
+        // Set the lower etrue bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_etru_bnd_low->At(i));
+	if (tempVector->GetNrows() > 1) {
+          std::cerr << "Found a bound array which is longer than 1" << std::endl;
+          std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+          std::cerr << "Error: although implemented as an array the lower energy bound should only have one value" << std::endl;
+          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        tmp_xsec.etru_bnd_low=tempVector[0][0];
+	if(tmp_xsec.etru_bnd_low!=-999)haskinbounds=true;
 
-	  //ETA - This can be a vector :) can provide different kinematic variables to cut on
-	  std::vector<double> single_selec;
 
-	  //ETA - push back kinematic type with dummy -999 since this needs to be converted into an enum for a kinematic type within
-	  //a samplePDFFD daughter class
-	  single_selec.push_back(-999);
-	  single_selec.push_back((*xsec_kinematic_lb)(i));
-	  single_selec.push_back((*xsec_kinematic_ub)(i));
+        // Set the upper etrue bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_etru_bnd_high->At(i));
+	if (tempVector->GetNrows() > 1) {
+          std::cerr << "Found a bound array which is longer than 1" << std::endl;
+          std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+          std::cerr << "Error: although implemented as an array the higher energy bound should only have one value" << std::endl;
+          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        tmp_xsec.etru_bnd_high=tempVector[0][0];
+	if(tmp_xsec.etru_bnd_high!=-999)haskinbounds=true;
 
-	  tmp_xsec.Selection.push_back(single_selec);
 
-	  std::cout << "Found kinematic bound on " << ((TObjString*)xsec_kinematic_type->At(norm_counter))->GetString() << " from " << single_selec[1] << " to " << single_selec[2] << " for parameter " << i << std::endl;
-	}
-	else{std::cout << "Did not find kinematic bound for param " << i << std::endl;}
+        // Set the lower q2_true bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_q2_true_bnd_low->At(i));
+	if (tempVector->GetNrows() > 1) {
+          std::cerr << "Found a bound array which is longer than 1" << std::endl;
+          std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+          std::cerr << "Error: although implemented as an array the lower energy bound should only have one value" << std::endl;
+          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        tmp_xsec.q2_true_bnd_low=tempVector[0][0];
+	if(tmp_xsec.q2_true_bnd_low!=-999)haskinbounds=true;
+
+
+        // Set the upper q2_true bound of the normalisation parameter
+        tempVector = (TVectorD*)(xsec_param_norm_q2_true_bnd_high->At(i));
+	if (tempVector->GetNrows() > 1) {
+          std::cerr << "Found a bound array which is longer than 1" << std::endl;
+          std::cerr << GetParameterName(i) << " = " << tempVector->GetNrows() << std::endl;
+          std::cerr << "Error: although implemented as an array the higher energy bound should only have one value" << std::endl;
+          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+	  throw;
+        }
+        tmp_xsec.q2_true_bnd_high=tempVector[0][0];
+	if(tmp_xsec.q2_true_bnd_high!=-999)haskinbounds=true;
 
 
 	//IF YOU HAVE NEW KINEMATIC BOUNDS TO LOAD IN PUT THEM HERE
 
 	tmp_xsec.hasKinBounds=haskinbounds;
 	//End of kinematic bound checking
-	
 
-	// Set the global parameter index of the normalisation parameter
-	tmp_xsec.index=i;
-		
-	//IF YOU HAVE NEW KINEMATIC BOUNDS TO LOAD IN PUT THEM HERE
 
-	
-
-	// Set the global parameter index of the normalisation parameter
-	tmp_xsec.index=i;
+        // Set the global parameter index of the normalisation parameter
+        tmp_xsec.index=i;
 	//Add this parameter to the vector of parameters
 	NearNormParams.push_back(tmp_xsec);
 
         // Count how many normalisation parameters we have
         nNearNormParams++;
-	
+
         // Function parameters, such as BeRPA
       }//End Near affecting normpars
       else if (GetXSecParamID(i, 0) == -2) {//Near affecting func pars
-	
+
         NearfuncParsNames.push_back(GetParameterName(i));
         NearfuncParsIndex.push_back(i);
         nNearFuncParams++;
-	
+
         // If they are greater >= 0 it's a spline parameter
       }//End Near affecting func pars
       else if (GetXSecParamID(i, 0) >= 0) {
         NearsplineParsNames.push_back(GetParameterName(i));
         NearsplineParsIndex.push_back(i);
         nNearSplineParams++;
-	
+
 	//Fill the name of the Far spline objects in the spline files
 	NearSplineFileParsNames.push_back(std::string(((TObjString*)xsec_param_nd_spline_names->At(i))->GetString()));
       }//End Near affecting spline pars
@@ -717,7 +755,7 @@ void covarianceXsec::scanParameters() {
       }
     }//End Near affecting parameters
   }
-  
+
   // Now count the repeated parameters and save their indices and names
   // This is useful because we only need to store 1 spline for e.g. neutrino and anti-neutrino interactions, but we still want to have separate neutrino/anti-neutrino parameters in covarianceXsec class
   // This then feeds into samplePDFND2014
@@ -742,7 +780,7 @@ void covarianceXsec::scanParameters() {
     //
     // Anti-neutrino parameters will share the same spline name with the neutrino counter-parts
     //if (nextName.find("_nubar") != std::string::npos) {
-    if (false) { 
+    if (false) {
       splineParsShareIndex.push_back(NearsplineParsIndex[itCnt]);
       splineParsShareNames.push_back(*it);
       // Which uniq spline does the parameter share with
@@ -812,6 +850,7 @@ void covarianceXsec::throwNominal(bool nomValues, int seed) {
       //nominal[i] = (*xsec_param_nom)(i);
     }
   }
+  delete nom_throws;
 }
 
 // ********************************************

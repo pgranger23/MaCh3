@@ -1,6 +1,5 @@
 #include "samplePDFND.h"
 
-
 // Debug this by defining DEBUG_DUMP if you find differences between CPU and GPU weights
 // Warning: will write lots of ROOT files to your directory!
 // Also turns on when DEBUG_ND280_DUMP environment variables is defined
@@ -64,9 +63,6 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   samplemodepdfs = NULL;
   modeobjarray = NULL;
 
-  nModes = 0;
-  nModes = GetMaCh3Modes();
-
   ndims = NULL;
   kinvars = NULL;
    
@@ -78,11 +74,14 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   // Set the ND280 test-statistic
   SetTestStatistic(static_cast<TestStatistic>(FitManager->GetMCStatLLH()));
 
+  // Get which splines should use a linear function
+  linearsplines = FitManager->GetXsecLinearSpline();
+
   // Then load the samples
   LoadSamples();
   
   // Enable the mode histograms AFTER addSelection is called
-  if (FitManager->getPlotByMode()) enableModeHistograms();
+  if (FitManager->getPlotByMode()) EnableModeHistograms();
 
   InitExperimentSpecific();
 
@@ -141,7 +140,7 @@ samplePDFND::~samplePDFND() {
    // Delete the master mode array
    if (modepdf) {
      for (__int__ i = 0; i < nSamples; i++) {
-       for (__int__ j = 0; j < nModes+1; j++) {
+       for (__int__ j = 0; j < kMaCh3_nModes+1; j++) {
          delete[] samplePDF_mode_array[i][j];
        }
        delete[] samplePDF_mode_array[i];
@@ -614,7 +613,7 @@ void samplePDFND::setAsimovFakeDataThrow() {
 
 // ***************************************************************************
 // Function which enables the samplePDFs to be plotted in accordance to interaction mode
-void samplePDFND::enableModeHistograms() {
+void samplePDFND::EnableModeHistograms() {
 // ***************************************************************************
 
    if (modepdf == true) {
@@ -635,14 +634,14 @@ void samplePDFND::enableModeHistograms() {
    for (int i = 0; i < nSamples; i++)
    {
      if (samplepdfs->At(i) == NULL) continue;
-     // Make sure at least one sample is added (unfortunately the calling of enableModeHistograms() needs to happen _AFTER_ addSelection, or else we have no added selections at all
+     // Make sure at least one sample is added (unfortunately the calling of EnableModeHistograms() needs to happen _AFTER_ addSelection, or else we have no added selections at all
      valid = true;
 
      modeobjarray[i] = new TObjArray(0);
-     modeobjarray[i]->Expand(nModes+1);
+     modeobjarray[i]->Expand(kMaCh3_nModes+1);
      modeobjarray[i]->SetOwner(true);
 
-     for (int j = 0; j < nModes+1; j++) {
+     for (int j = 0; j < kMaCh3_nModes+1; j++) {
        TString name = SampleName[i].c_str();
        name += j;
        if (ndims[i] == 1) {
@@ -655,7 +654,7 @@ void samplePDFND::enableModeHistograms() {
          modeobjarray[i]->AddAt(clone, j);
          // Complain if ndims is some weird thing
        } else {
-         std::cerr << "ndims[" << i << "] != 1 or 2 in enableModeHistograms()" << std::endl;
+         std::cerr << "ndims[" << i << "] != 1 or 2 in EnableModeHistograms()" << std::endl;
          std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
          throw;
        }
@@ -665,8 +664,8 @@ void samplePDFND::enableModeHistograms() {
 
    if (valid == false) {
      std::cerr << "Tried enabling mode pdfs without having any selections enabled" << std::endl;
-     std::cerr << "Did you call enableModeHistograms() before you did addSelection()?" << std::endl;
-     std::cerr << "Call addSelection() first, then enableModeHistograms()" << std::endl;
+     std::cerr << "Did you call EnableModeHistograms() before you did addSelection()?" << std::endl;
+     std::cerr << "Call addSelection() first, then EnableModeHistograms()" << std::endl;
      throw;
    }
 }
@@ -693,7 +692,7 @@ void samplePDFND::printRates(bool dataonly) {
        if(!dataonly)
        {
         sumMC   += NoOverflowIntegral((TH2Poly*)(getPDF(i)));
-        /*for (int k = 0; k < nModes+1; k++) {
+        /*for (int k = 0; k < kMaCh3_nModes+1; k++) {
           std::string ModeName = std::string("MC")+name+"_"+MaCh3mode_ToString(MaCh3_Mode(k));
           std::cout << std::setw(40) << std::left << ModeName <<  NoOverflowIntegral(((TH2Poly*)getPDFMode(i,k))) << std::setw(10) << "|"<<std::endl;
         }*/
@@ -860,7 +859,7 @@ void samplePDFND::ReWeight_MC_MP() {
 
    // Declare the omp parallel region
    // The parallel region needs to stretch beyond the for loop!
- #pragma omp parallel private(samplePDF_array_private, samplePDF_mode_array_private, samplePDF_w2_array_private)
+  #pragma omp parallel private(samplePDF_array_private, samplePDF_mode_array_private, samplePDF_w2_array_private)
   {
      // private to each thread
      samplePDF_array_private = new double*[nSamples]();
@@ -878,8 +877,8 @@ void samplePDFND::ReWeight_MC_MP() {
      if (modepdf) {
        samplePDF_mode_array_private = new double**[nSamples]();
        for (__int__ i = 0; i < nSamples; ++i) {
-         samplePDF_mode_array_private[i] = new double*[nModes+1]();
-         for (__int__ j = 0; j < nModes+1; ++j) {
+         samplePDF_mode_array_private[i] = new double*[kMaCh3_nModes+1]();
+         for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) {
            samplePDF_mode_array_private[i][j] = new double[maxBins[i]]();
            for (__int__ k = 0; k < maxBins[i]; ++k) {
              samplePDF_mode_array_private[i][j][k] = 0.0;
@@ -1006,7 +1005,7 @@ void samplePDFND::ReWeight_MC_MP() {
        if (modepdf) 
        {
          for (__int__ i = 0; i < nSamples; ++i) {
-           for (__int__ j = 0; j < nModes+1; ++j) {
+           for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) {
              for (__int__ k = 0; k < maxBins[i]; ++k) {
                // Do the same summation for the mode arrays
  #pragma omp atomic
@@ -1029,7 +1028,7 @@ void samplePDFND::ReWeight_MC_MP() {
      if (modepdf) {
        for (__int__ i = 0; i < nSamples; ++i) 
        {
-         for (__int__ j = 0; j < nModes+1; ++j) {
+         for (__int__ j = 0; j < kMaCh3_nModes+1; ++j) {
            delete[] samplePDF_mode_array_private[i][j];
          }
          delete[] samplePDF_mode_array_private[i];
@@ -1048,7 +1047,7 @@ void samplePDFND::ReWeight_MC_MP() {
      for (__int__ i = 0; i < nSamples; ++i) 
      {
        if (samplepdfs->At(i) == NULL) continue;
-       for (__int__ j = 0; j < nModes+1; ++j)
+       for (__int__ j = 0; j < kMaCh3_nModes+1; ++j)
        {
          for (__int__ k = 0; k < maxBins[i]-__TH2PolyOverflowBins__; ++k) 
          {
@@ -2127,6 +2126,26 @@ void samplePDFND::SetSplines_Reduced(TGraph** &xsecgraph, const int EventNumber)
 void samplePDFND::fillReweightingBins() {
 // ***************************************************************************
 
+  std::cout << "starting fillReweightingBins" <<  std::endl;
+  // Check that the covariances are filled
+  CheckCovariances();
+
+  FindAdditionalInfo();
+
+  FindNormBins();
+
+  FindNormPointer();
+
+  InitialisePDF();
+
+  //KS: Shrink memory to accepted number of events
+  NDEve.resize(nEvents);
+#ifndef DEBUG
+  //KS: We only needed this to set some varialbes but now we can delete it to save RAM, however do this in standard fit, in debug mode we might need thos varaibles for verbose
+  NDEve_Aux.clear();
+  std::cout << "Removing auxilary variables not needed during fit, relase " << nEvents*(sizeof(__float__)*2 + sizeof(__int__)*2 + sizeof(bool))/1.E6 << " MB of RAM" << std::endl;
+#endif
+
   std::cerr<<"Function fillReweightingBins is experiment specific however core code uses it"<<std::endl;
   std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
   throw;
@@ -2166,7 +2185,7 @@ void samplePDFND::FindNormBins() {
 
     if (XsecCov) 
     {
-      for(std::vector<XsecNorms4>::iterator it = xsec_norms.begin(); it != xsec_norms.end(); ++it)
+      for(std::vector<XsecNorms3>::iterator it = xsec_norms.begin(); it != xsec_norms.end(); ++it)
       {
         bool noH=false;
         bool targetmatch = false;
@@ -2240,8 +2259,7 @@ void samplePDFND::FindNormBins() {
         }
 
         if(!modematch) continue;
-//WARNING TODO FIXME
-/*
+
         if((*it).hasKinBounds)
         {
           if((*it).etru_bnd_low >= NDEve_Aux[iEvent].Enu && (*it).etru_bnd_low != -999) continue;
@@ -2249,7 +2267,6 @@ void samplePDFND::FindNormBins() {
           if((*it).q2_true_bnd_low >= NDEve_Aux[iEvent].Q2 && (*it).q2_true_bnd_low != -999) continue;
           if((*it).q2_true_bnd_high < NDEve_Aux[iEvent].Q2 && (*it).q2_true_bnd_high != -999) continue;
         }
-*/
         //Now set 'index bin' for each normalisation parameter
         //All normalisations are just 1 bin, so bin = index (where index is just the bin for that normalisation)
         int bin = (*it).index;
@@ -2297,62 +2314,11 @@ void samplePDFND::FindNormPointer() {
 //KS:  Find Detector bin, hist bin and other useful information using multithreading
 void samplePDFND::FindAdditionalInfo() {
 // ******************************************
-    int Events = nEvents;
 
-    #ifdef MULTITHREAD
-    #pragma omp parallel for 
-    #endif
-    for (int iEvent = 0; iEvent < Events; ++iEvent) 
-    {
-        int EventSample = NDEve[iEvent].event_sample;
+  std::cerr<<"Function LoadSamples is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
 
-        // Find the global histogram bin number for this event
-        // Do this last in case we have to momentum shift the muon
-        // Essentially here so we avoid doing a Fill for every reconfigure
-        // 1D
-        if (ndims[EventSample] == 1)
-        {
-            NDEve[iEvent].hist_bin =((TH1*)samplepdfs->At(EventSample))->FindFixBin(NDEve[iEvent].mom);
-            // 2D
-        } else if (ndims[EventSample] == 2)
-        {
-            NDEve[iEvent].hist_bin =(((TH2Poly*)samplepdfs->At(EventSample))->FindBin(NDEve[iEvent].mom, NDEve[iEvent].theta));
-        } else {
-            std::cerr << "ndims doesn't appear to be set yet!" << std::endl;
-            std::cerr << "EventSample = " << SampleName[EventSample] << " ndims = " << ndims[EventSample] << std::endl;
-            throw;
-        }
-        //WARNING TODO FIXME this need to be done by each experiment
-        /*
-        // Find what ND280 detector systematic parameter applies to this event
-        // If we're using simple detector (not using psyche for event by event detector systematics), find the global ND280 systematics bin which the event sits in
-        // Do this last in case we have to momentum shift the muon
-        // If 1D
-
-        if (ndims[EventSample] == 1) {
-            // detector systematics binning is in lepton momentum
-            NDEve[iEvent].det_bin = NDDetCov->getBin(SampleId::SampleEnum(EventSample), NDEve[iEvent].mom);
-            // If 2D
-        } else if (ndims[EventSample] == 2) {
-            NDEve[iEvent].det_bin = NDDetCov->getBin(SampleId::SampleEnum(EventSample), NDEve[iEvent].mom, NDEve[iEvent].theta);
-        } else {
-            std::cerr << "ndims doesn't appear to be set yet!" << std::endl;
-            std::cerr << "EventSample = " << SampleName[EventSample] << " ndims = " << EventSample << std::endl;
-            throw;
-        }
-
-        //KS:: Eb applies only do Eb shift for 12C and 16O, when mode is CCQE and Enu is < 4 GeV and muon momentum, let's set one variable rather than make ton of comparison each step each event
-
-        if( !( (NDEve_Aux[iEvent].target == kTarget_O || NDEve_Aux[iEvent].target == kTarget_C) &&
-            (NDEve[iEvent].mode == kMaCh3_CCQE) && (NDEve_Aux[iEvent].Enu < 4) && NDEve[iEvent].hist_bin > 0 
-            && kinvars[NDEve[iEvent].event_sample][0] == kLeptonMomentum ) ) 
-        {
-           NDEve[iEvent].eb_bin = -1;
-        }
-        //At the end fill adjusted momentum we will use for Eb
-        NDEve[iEvent].mom_adj = NDEve[iEvent].mom;
-        */
-    }
 }
 
 // ***************************************************************************
@@ -2374,73 +2340,6 @@ void samplePDFND::CheckCovariances() {
   }
 
 }
-
-#if DEBUG > 0
-// ***************************************************************************
-// Dump the spline draw for a given event to an output file
-// This is useful to check if the splines are bad
-void samplePDFND::DumpSplines(double xsecw, double detw, int i) {
-// ***************************************************************************
-
-  std::cerr << "===============\nFOUND STRANGE EVENT IN SAMPLE\n===============" << std::endl;
-
-  std::cerr << "Current XsecCov configuration:" << std::endl;
-  XsecCov->printNominalCurrProp();
-
-  PrintStructs(xsecw, detw, i);
-
-  // Make a string describing the run
-  std::string OutputName = std::string((*prod).Data());
-  while (OutputName.find(" ") != std::string::npos) {
-    OutputName.replace(OutputName.find(" "), 1, std::string("_"));
-  }
-  std::stringstream ss;
-  ss << i;
-  OutputName += "_event_" + ss.str() + ".root";
-
-#if USE_SPLINE < USE_TF1
-  // Make a TFile
-  TFile *file = new TFile(OutputName.c_str(), "recreate");
-  TCanvas *canv = new TCanvas("canv", "canv", 1080, 1080);
-  file->cd();
-  canv->cd();
-  canv->Draw();
-  // Loop over the spline parameters and write them to file
-  for (int j = 0; j < nSplineParams; ++j) {
-    if (xsecInfo[i].GetFunc(j) == NULL) continue;
-    TSpline3 *Spline = NULL;
-#if USE_SPLINE < USE_TSpline3
-    Spline = xsecInfo[i].GetFunc(j)->ConstructTSpline3();
-#else
-    Spline = xsecInfo[i].GetFunc(j);
-#endif
-    Spline->Draw("LP*");
-    canv->Write(Spline->GetTitle());
-  }
-
-  file->Write();
-  file->Close();
-  delete file;
-  delete canv;
-  std::cerr << "Wrote collected spline response to " << OutputName << std::endl;
-#endif
-}
-#endif
-
-#ifdef DEBUG
-// ***************************************************************************
-// Prints the relevant struct information and weights for one event
-void samplePDFND::PrintStructs(double xsecw, double detw, const int i) {
-// ***************************************************************************
-  std::cout << "===============\nPRINTING EVENT BY EVENT WEIGHTS\n===============" << std::endl;
-  std::cout << "EVENT " << i << std::endl;
-  NDEve[i].Print();
-  NDEve_Aux[i].Print();
-  std::cout << std::setw(20) << "detw     = " << detw << std::endl;
-  std::cout << std::setw(20) << "xsecw    = " << xsecw << std::endl;
-  std::cout << std::setw(20) << "totalw (xsec*det*flux)  = " << xsecw*detw*NDEve[i].flux_w << std::endl;
-}
-#endif
 
 
 #if USE_SPLINE < USE_TF1
@@ -2631,6 +2530,64 @@ void samplePDFND::GetKinVars(int Sample, KinematicTypes &TypeX, KinematicTypes &
 }
 
 // **************************************************
+//KS: Helper which initlaise PDF
+void samplePDFND::InitialisePDF() {
+// **************************************************
+
+  // Take the overflow into account
+  nSamples += 1;
+  //KS: Learn how much bin we need for reweighting LLH calcaualtion etc.
+  int GlobalNumberOfBin = 0;
+
+  //For th2polys, the overflow bins are -1 to -9, depending on which direction your overflowing. For multithreading, we first add to a private array and then set this as the bin content at the end of the loop over events where array index = bin number. You can't have an array with negative indices so we'll use the final 9 bins as overflow. The last array element will equate to bin -1, the penultimate to bin -2 and so.
+  for (__int__ i = 0; i < nSamples; i++)
+  {
+      if (samplepdfs->At(i) == NULL) continue;
+      maxBins[i] += 10;
+      GlobalNumberOfBin += maxBins[i];
+  }
+  std::cout<<"Using in total "<<GlobalNumberOfBin<<" bins for all samples"<<std::endl;
+
+   //KS: Initialsie master arrays which keep number of events for each sample. Those are used in reweighting and LLH calcualtion but we still retain option to convert it back to TH2Poly
+   // The master array for data
+   samplePDF_data_array = new double*[nSamples]();
+   // The master array for MC
+   samplePDF_array = new double*[nSamples]();
+   // The master array of weights^2, needed for Barlow Beeston
+   samplePDF_w2_array = new double*[nSamples]();
+   for (__int__ i = 0; i < nSamples; i++) {
+     samplePDF_data_array[i] = new double[maxBins[i]]();
+     samplePDF_array[i] = new double[maxBins[i]]();
+     samplePDF_w2_array[i] = new double[maxBins[i]]();
+     for (__int__ j = 0; j < maxBins[i]; ++j) {
+       samplePDF_data_array[i][j] = 0.0;
+       samplePDF_array[i][j] = 0.0;
+       samplePDF_w2_array[i][j] = 0.0;
+     }
+   }
+
+   //Update Data PDF now that we initalised
+   UpdateDataPDF();
+#ifdef MULTITHREAD
+   // Allocate only if modepdf
+   if (modepdf) {
+   // The master mode array
+   // Has an extra index to denote the mode
+     samplePDF_mode_array = new double**[nSamples]();
+     for (__int__ i = 0; i < nSamples; i++) {
+       samplePDF_mode_array[i] = new double*[kMaCh3_nModes+1]();
+       for (__int__ j = 0; j < kMaCh3_nModes+1; j++) {
+         samplePDF_mode_array[i][j] = new double[maxBins[i]]();
+         for (__int__ k = 0; k < maxBins[i]; ++k) {
+           samplePDF_mode_array[i][j][k] = 0.0;
+         }
+       }
+     }
+   }
+#endif
+}
+
+// **************************************************
 //Helper which udpate data arrays from histogram
 void samplePDFND::UpdateDataPDF() {
 // **************************************************
@@ -2678,7 +2635,7 @@ void samplePDFND::ResetHistograms() {
   // If we want to plot according to mode
   if (modepdf) {
     for (__int__ i = 0; i < nSamples; ++i) {
-      for (int j = 0; j < nModes+1; ++j) {
+      for (int j = 0; j < kMaCh3_nModes+1; ++j) {
           // If 1D
           if (ndims[i] == 1) {
           ((TH1*)((TObjArray*)samplemodepdfs->At(i))->At(j))->Reset();
@@ -2694,6 +2651,73 @@ void samplePDFND::ResetHistograms() {
 } // end function
 
 
+#if DEBUG > 0
+// ***************************************************************************
+// Dump the spline draw for a given event to an output file
+// This is useful to check if the splines are bad
+void samplePDFND::DumpSplines(double xsecw, double detw, int i) {
+// ***************************************************************************
+
+  std::cerr << "===============\nFOUND STRANGE EVENT IN SAMPLE\n===============" << std::endl;
+
+  std::cerr << "Current XsecCov configuration:" << std::endl;
+  XsecCov->printNominalCurrProp();
+
+  PrintStructs(xsecw, detw, i);
+
+  // Make a string describing the run
+  std::string OutputName = std::string((*prod).Data());
+  while (OutputName.find(" ") != std::string::npos) {
+    OutputName.replace(OutputName.find(" "), 1, std::string("_"));
+  }
+  std::stringstream ss;
+  ss << i;
+  OutputName += "_event_" + ss.str() + ".root";
+
+#if USE_SPLINE < USE_TF1
+  // Make a TFile
+  TFile *file = new TFile(OutputName.c_str(), "recreate");
+  TCanvas *canv = new TCanvas("canv", "canv", 1080, 1080);
+  file->cd();
+  canv->cd();
+  canv->Draw();
+  // Loop over the spline parameters and write them to file
+  for (int j = 0; j < nSplineParams; ++j) {
+    if (xsecInfo[i].GetFunc(j) == NULL) continue;
+    TSpline3 *Spline = NULL;
+#if USE_SPLINE < USE_TSpline3
+    Spline = xsecInfo[i].GetFunc(j)->ConstructTSpline3();
+#else
+    Spline = xsecInfo[i].GetFunc(j);
+#endif
+    Spline->Draw("LP*");
+    canv->Write(Spline->GetTitle());
+  }
+
+  file->Write();
+  file->Close();
+  delete file;
+  delete canv;
+  std::cerr << "Wrote collected spline response to " << OutputName << std::endl;
+#endif
+}
+#endif
+
+#ifdef DEBUG
+// ***************************************************************************
+// Prints the relevant struct information and weights for one event
+void samplePDFND::PrintStructs(double xsecw, double detw, const int i) {
+// ***************************************************************************
+  std::cout << "===============\nPRINTING EVENT BY EVENT WEIGHTS\n===============" << std::endl;
+  std::cout << "EVENT " << i << std::endl;
+  NDEve[i].Print();
+  NDEve_Aux[i].Print();
+  std::cout << std::setw(20) << "detw     = " << detw << std::endl;
+  std::cout << std::setw(20) << "xsecw    = " << xsecw << std::endl;
+  std::cout << std::setw(20) << "totalw (xsec*det*flux)  = " << xsecw*detw*NDEve[i].flux_w << std::endl;
+}
+#endif
+
 #ifdef CUDA
 // *********************************************
 // Fill the GPU with splines
@@ -2702,9 +2726,9 @@ void samplePDFND::fillGPUSplines() {
 
   // Can pass the spline segments to the GPU instead of the values
   // Make these here and only refill them for each loop, avoiding unnecessary new/delete on each reconfigure
-#if USE_SPLINE < USE_TF1
+  #if USE_SPLINE < USE_TF1
   segments = new int[nSplineParams]();
-#endif
+  #endif
   vals = new float[nSplineParams]();
 
   // Make a vector of all the vectors of TSpline3 pointers
@@ -2726,9 +2750,9 @@ void samplePDFND::fillGPUSplines() {
   splineMonolith = new SMonolith(MasterSpline);
 
   // Now need to reset the xsecInfo to match the MasterSpline
-#ifdef MULTITHREAD
-#pragma omp parallel for
-#endif
+  #ifdef MULTITHREAD
+  #pragma omp parallel for
+  #endif
   for (unsigned int i = 0; i < nEvents; ++i) {
     // Make a vector of the pointers for each event
     for (int j = 0; j < nSplineParams; ++j) {
@@ -2737,7 +2761,7 @@ void samplePDFND::fillGPUSplines() {
   }
 
   // Make TH1D which logs differences in CPU and GPU weights for each reconfigure
-#ifdef DEBUG_DUMP
+  #ifdef DEBUG_DUMP
   std::string title = FitManager->getOutputFilename();
   title += "_GPUweights.root";
   DebugFile = new TFile(title.c_str(), "RECREATE");
@@ -2758,12 +2782,12 @@ void samplePDFND::fillGPUSplines() {
     diff_weights_plot[i]->GetYaxis()->SetTitle("CPU - GPU weight");
   }
   // Clean up the memory if we aren't debugging
-#else
+  #else
   CleanUpMemory();
-#endif
+  #endif
 }
 
-#ifdef DEBUG_DUMP
+  #ifdef DEBUG_DUMP
 // **************************************
 // Compare the CPU and GPU weights
 // Since we have both CPU and GPU splines in memory we might as well check they are the same!
@@ -2807,29 +2831,29 @@ void samplePDFND::CompareCPU_GPU_Splines(const int EventNumber) {
       std::cerr << "   GPU_weight:    " << GPU_weight << std::endl;
       std::cerr << "   Diff:          " << diff << std::endl;
 
-#if USE_SPLINE < USE_TF1
+    #if USE_SPLINE < USE_TF1
       std::cerr << "   Segment:       " << SplineInfoArray[id].CurrSegment << std::endl;
       std::cerr << "   Segment spl:   " << spl->FindX(var) << std::endl;
-#else
+    #else
       std::cerr << "   Coeffs:        " << std::endl;
       spl->Print();
-#endif
+    #endif
       std::cerr << "   " << badWeight << " weights bad so far" << std::endl;
       std::cerr << "   On " << nReconf << " reweights so far" << std::endl;
     }
   }
 }
-#endif
+  #endif
 
 // *************************************
 // Helper function to clean up the splines which we've now got stores on the GPU
 void samplePDFND::CleanUpMemory() {
 // *************************************
-#ifndef DEBUG_DUMP
+  #ifndef DEBUG_DUMP
   // Delete all the TSpline3 memory allocated since this now lives on the GPU and is no longer needed on the GPU
-#ifdef MULTITHREAD
-#pragma omp parallel for
-#endif
+  #ifdef MULTITHREAD
+  #pragma omp parallel for
+  #endif
   for (unsigned int i = 0; i < nEvents; ++i) {
     for (int j = 0; j < nSplineParams; ++j) {
       // Delete the allocated memory
@@ -2841,7 +2865,7 @@ void samplePDFND::CleanUpMemory() {
       xsecInfo[i].SetFunc(j, Temp);
     }
   }
-#endif
+  #endif
 }
 #endif
 

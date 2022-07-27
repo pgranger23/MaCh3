@@ -14,7 +14,6 @@
 
 // MaCh3 includes
 #include "samplePDF/samplePDFND.h"
-//#include "samplePDF/samplePDFNDGPU.h"
 
 
 // *******************
@@ -258,11 +257,8 @@ class SampleSummary {
     // The posterior predictive distribution in pmu cosmu using the mean
     TH2Poly ***MeanHist_ByMode;
     TH1D ****PosteriorHist_ByMode;
-#ifdef CUDA
-    samplePDFNDGPU* sampleND;
-#else
+
     samplePDFND* sampleND;
-#endif
     
     //Type of likelihood for example Poisson, Barlow-Beestion or Ice Cube
     int likelihood;

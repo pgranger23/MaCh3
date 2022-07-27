@@ -25,6 +25,10 @@ samplePDFFDBase::samplePDFFDBase(double pot, std::string mc_version, covarianceX
   applyBetaNue=false;
   applyBetaDiag=false;
 
+  samplePDFFD_array = NULL;
+  samplePDFFD_w2_array = NULL;
+  samplePDFFD_data = NULL;
+
   //KS: For now FD support only one sample
   nSamples = 1;
 
@@ -634,7 +638,7 @@ void samplePDFFDBase::setXsecCov(covarianceXsec *xsec){
 //ETA
 //New versions of set binning funcitons is samplePDFBase
 //so that we can set the values of the bin and lower/upper
-//edges in the skmc_base. Hopefully we can use this to make 
+//edges in the skmc_base. Hopefully we can use this to make
 //fill1Dhist and fill2Dhist quicker
 void samplePDFFDBase::set1DBinning(int nbins, double* boundaries)
 {

@@ -20,6 +20,7 @@
 #include "TTree.h"
 #include "TBranch.h"
 
+#include "samplePDF/Structs.h"
 // Only needed to Get number of threads
 // Could alternatively set-up by setting a static global?
 #ifdef MULTITHREAD
@@ -82,6 +83,8 @@ class manager {
   bool GetBinnedOsc()   { return binned_osc;}
   bool GetDoubleAngle() { return double_angle; }
   std::vector<double> GetOscBins() { return osc_bins; }
+
+  std::vector<int> GetXsecLinearSpline() {return xsec_linear_spline;};
 
   double GetBinningOpt() { return binning_opt; }
 
@@ -379,6 +382,7 @@ class manager {
   std::vector<int> nu_type;
   std::vector<int> oscnu_type;
   std::vector<bool> signal;
+  std::vector<int> xsec_linear_spline;
 };
 
 #endif

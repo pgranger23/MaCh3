@@ -131,7 +131,7 @@ class samplePDFND : public samplePDFBase {
       void fillDataFromSamples();
       void fillReweightingBins();
 
-      virtual void enableModeHistograms();
+      virtual void EnableModeHistograms();
 
       void printRates(bool dataonly = false);
 
@@ -179,6 +179,9 @@ class samplePDFND : public samplePDFBase {
 
       // Helper function to reset histograms
       inline void ResetHistograms();
+
+      //KS: Helper which initlaise PDF
+      inline void InitialisePDF();
 
       //Helper which udpate data arrays from histogram
       inline void UpdateDataPDF();
@@ -236,7 +239,7 @@ class samplePDFND : public samplePDFBase {
       // The per-thread array
       double **samplePDF_data_array;
       double **samplePDF_array;
-      // The per-thread array of weight^2
+      // array of weight^2
       double **samplePDF_w2_array;
 
 #ifdef MULTITHREAD
@@ -247,7 +250,6 @@ class samplePDFND : public samplePDFBase {
       TObjArray** modeobjarray;
       // do we want mode MC pdf to be save
       bool modepdf;
-      int nModes;
 
       // Struct containing the cross-section info
       XSecStruct<__SPLINE_TYPE__*>* xsecInfo;

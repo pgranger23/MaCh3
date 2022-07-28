@@ -9,18 +9,23 @@
 #define EXIT_SUCCESS 0
 #endif
 
+// C++ includes
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <cstdlib>
-#include "libconfig/lib/libconfig.h++"
 
+// ROOT include
 #include "TFile.h"
 #include "TTree.h"
 #include "TBranch.h"
 
+// MaCh3 samplePDF includes
 #include "samplePDF/Structs.h"
+
+#include "libconfig/lib/libconfig.h++"
+
 // Only needed to Get number of threads
 // Could alternatively set-up by setting a static global?
 #ifdef MULTITHREAD

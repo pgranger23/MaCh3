@@ -1101,8 +1101,10 @@ void samplePDFFDBase::fillSplineBins()
   return;
 }
 
-double samplePDFFDBase::getLikelihood()
-{
+// ***************************************************************************
+// Get the likelihood
+double samplePDFFDBase::getLikelihood() {
+// ***************************************************************************
   if (samplePDFFD_data==NULL) {
       std::cerr << "data sample is empty!" << std::endl;
       return -1;

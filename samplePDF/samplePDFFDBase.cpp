@@ -172,9 +172,12 @@ void samplePDFFDBase::reweight(double *oscpar) // Reweight function (this should
 	}
 
   }
-  //KS: Reset the histograms before reweight 
+  //KS: Reset the histograms before reweight
   ResetHistograms();
-  
+
+  // Prepare the weights
+  PrepareWeights();
+
   // Call entirely different routine if we're running with openMP
   #ifdef MULTITHREAD
   ReWeight_MC_MP();
@@ -195,12 +198,17 @@ void samplePDFFDBase::reweight(double *oscpar_nub, double *oscpar_nu) // Reweigh
   //KS: Reset the histograms before reweight
   ResetHistograms();
 
+  // Prepare the weights
+  PrepareWeights();
+
   // Call entirely different routine if we're running with openMP
   #ifdef MULTITHREAD
   ReWeight_MC_MP();
   #else
   ReWeight_MC();
   #endif
+
+  return;
 }
 
 double samplePDFFDBase::calcOscWeights(int nutype, int oscnutype, double en, double *oscpar)
@@ -239,8 +247,6 @@ void samplePDFFDBase::ReWeight_MC() {
   Selection = StoredSelection;
 
   ReconfigureFuncPars();
-
-  PrepareWeights();
 
   for (unsigned int iSample=0;iSample<MCSamples.size();iSample++) {
     for (int iEvent=0;iEvent<MCSamples[iSample].nEvents;iEvent++) {
@@ -392,8 +398,6 @@ void samplePDFFDBase::ReWeight_MC_MP() {
 		samplePDFFD_array_private[yBin][xBin] = 0.;
 	  }
 	}
-
-    PrepareWeights();
 
 	//DB - Brain dump of speedup ideas
 	//
@@ -631,7 +635,7 @@ void samplePDFFDBase::PrepareWeights() {
     //DB From Clarence's suggestion, moved spline weight calculation into this OMP parallel region but this did not reduce s/step
     //Maybe more efficient to OMP inside splineFile->FindSplineSegment and splineFile->calcWeights
     #ifdef MULTITHREAD
-    #pragma omp for
+    #pragma omp parallel for
     #endif
     for (int iSample = 0; iSample < (int)MCSamples.size(); iSample++) {
       MCSamples[iSample].splineFile->FindSplineSegment();

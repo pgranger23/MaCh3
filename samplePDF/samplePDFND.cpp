@@ -1269,30 +1269,37 @@ double samplePDFND::CalcXsecWeight(const int i) {
 // *********************************************
 // Calculate cross-section weights for using GPU
 double samplePDFNDGPU::CalcXsecWeight_Spline(const int i) {
-  // *********************************************
+// *********************************************
   double xsecw = 1.;
+
+#ifdef Weight_On_SplineBySpline_Basis
   // Loop over the spline parameters and get their responses
   for (int id = 0; id < nSplineParams; id++) {
-#ifdef DEBUG
+  #ifdef DEBUG
     if (std::isnan(xsecw)) {
       std::cerr << "Found nan xsecw, event " << i << ", spline " << splineParsNames[id] << std::endl;
       throw;
     }
-#endif
+  #endif
     xsecw *= splineMonolith->cpu_weights[i*nSplineParams+id];
     //KS: if weight is less then 0 there is no need to make spline any further
     //we can just return 0 and save some precious CPU time
     if (xsecw <= 0)
     {
-        return 0;
-    //std::cerr << "Found negative xsecw, event " << i << ", spline " << splineParsNames[id] << " = " << xsecw << std::endl;
+      return 0;
+      //std::cerr << "Found negative xsecw, event " << i << ", spline " << splineParsNames[id] << " = " << xsecw << std::endl;
     }
   } // end the k loop
 
   // If we're debugging check CPU and GPU weight
-#ifdef DEBUG_DUMP
+  #ifdef DEBUG_DUMP
   CompareCPU_GPU_Splines(i);
+  #endif
+  //KS: Alternatively get total xsec event weight
+#else
+    xsecw *= splineMonolith->cpu_total_weights[i];
 #endif
+
   return xsecw;
 } // end CalcXsecWeight_Spline
 

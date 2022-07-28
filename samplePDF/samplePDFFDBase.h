@@ -170,6 +170,10 @@ public:
   // Calculate the norm weight for a given event
   double CalcXsecWeight_Norm(const int iSample, const int iEvent);
   virtual double CalcXsecWeight_Func(int iSample, int iEvent){return 1.;};
+
+  // Prepare weights
+  void PrepareWeights();
+
   //===============================================================================
   //DB Variables required for getLikelihood
   //

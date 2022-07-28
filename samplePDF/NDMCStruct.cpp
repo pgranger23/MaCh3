@@ -2,7 +2,7 @@
 
 // ********************
 // Constructor
-ND280EVENT::ND280EVENT() {
+NDEVENT::NDEVENT() {
 // ********************
     mom = __BAD_DOUBLE__;
     mom_adj = __BAD_DOUBLE__;
@@ -24,16 +24,16 @@ ND280EVENT::ND280EVENT() {
 
 // ********************
 // Empty destructor
-ND280EVENT::~ND280EVENT() {
+NDEVENT::~NDEVENT() {
 // ********************
 
 }
 
 // ********************
 // Print a given event number
-void ND280EVENT::Print() {
+void NDEVENT::Print() {
 // ********************
-  std::cout << "*** Printing ND280EVENT info:" << std::endl;
+  std::cout << "*** Printing NDEVENT info:" << std::endl;
   std::cout << "    " << std::left << std::setw(20) << "pLepton: " << mom << " MeV" << std::endl;
   std::cout << "    " << std::left << std::setw(20) << "pLep adj: " << mom_adj << " MeV" << std::endl;
   std::cout << "    " << std::left << std::setw(20) << "CosThLepton: " << theta << std::endl;
@@ -53,7 +53,7 @@ void ND280EVENT::Print() {
 
 // ********************
 // Constructor
-ND280EVENT_AUXILIARY::ND280EVENT_AUXILIARY() {
+NDEVENT_AUXILIARY::NDEVENT_AUXILIARY() {
 // ********************
     isRHC = false;
     target = __BAD_INT__;
@@ -64,16 +64,16 @@ ND280EVENT_AUXILIARY::ND280EVENT_AUXILIARY() {
 
 // ********************
 // Empty destructor
-ND280EVENT_AUXILIARY::~ND280EVENT_AUXILIARY() {
+NDEVENT_AUXILIARY::~NDEVENT_AUXILIARY() {
 // ********************
 
 }
 
 // ********************
 // Print a given event number
-void ND280EVENT_AUXILIARY::Print() {
+void NDEVENT_AUXILIARY::Print() {
 // ********************
-  std::cout << "*** Printing ND280EVENT_AUXILIARY info:" << std::endl;
+  std::cout << "*** Printing NDEVENT_AUXILIARY info:" << std::endl;
   std::cout << "    " << std::left << std::setw(20) << "Is RHC: " << isRHC << std::endl;
   std::cout << "    " << std::left << std::setw(20) << "Target: " << target << std::endl;
   std::cout << "    " << std::left << std::setw(20) << "species: " << species << std::endl;

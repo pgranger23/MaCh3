@@ -2,7 +2,7 @@
 
 // *******************
 // The constructor
-SampleSummary::SampleSummary(const int PsycheSamples, const std::string &Filename, int nSteps) {
+SampleSummary::SampleSummary(const int Samples, const std::string &Filename, int nSteps) {
 // *******************
 
   std::cout << "Making sample summary class..." << std::endl;
@@ -22,7 +22,7 @@ SampleSummary::SampleSummary(const int PsycheSamples, const std::string &Filenam
   else isPriorPredictive = false;
   
   OutputName = Filename;
-  nSamples = PsycheSamples;
+  nSamples = Samples;
   nThrows = 0;
   first_pass = true;
   Outputfile = NULL;
@@ -234,13 +234,13 @@ SampleSummary::~SampleSummary() {
 }
 
 // *******************
-// Check size of psyche sample against size of vectors
-bool SampleSummary::CheckPsycheSamples(int Length) {
+// Check size of sample against size of vectors
+bool SampleSummary::CheckSamples(int Length) {
 
 // *******************
   bool ok = (sampleND->GetNsamples() == Length);
   if (!ok) {
-    std::cerr << "Size of SampleVector input != number of psyche samples" << std::endl;
+    std::cerr << "Size of SampleVector input != number of samples" << std::endl;
     std::cout << "Size of SampleVector: " << Length << std::endl;
     std::cout << "Size of SamplePDF samples: " << sampleND->GetNsamples() << std::endl;
     std::cerr << "Something has gone wrong with making the Samples" << std::endl;
@@ -251,13 +251,13 @@ bool SampleSummary::CheckPsycheSamples(int Length) {
 }
 
 // *******************
-// Add a data histogram to the list (will have N_psyche_samples of these)
+// Add a data histogram to the list (will have N_samples of these)
 // Since the data doesn't change with varying the MC
 void SampleSummary::AddData(std::vector<TH2Poly*> &Data) {
 // *******************
   int Length = Data.size();
-  // Check length of psyche samples are OK
-  if (!CheckPsycheSamples(Length)) throw;
+  // Check length of samples are OK
+  if (!CheckSamples(Length)) throw;
   for (int i = 0; i < Length; ++i) {
     if (Data[i] == NULL) {
       DataHist[i] = NULL;
@@ -265,7 +265,7 @@ void SampleSummary::AddData(std::vector<TH2Poly*> &Data) {
       DataHist_ProjectY[i] = NULL;
       maxBins[i] = 0;
     } else {
-      PsycheSampleMap.push_back(i);
+      SampleMap.push_back(i);
       DataHist[i] = (TH2Poly*)(Data[i]->Clone());
       DataHist_ProjectX[i] = ProjectPoly(DataHist[i], true, i);
       DataHist_ProjectY[i] = ProjectPoly(DataHist[i], false, i);
@@ -275,12 +275,12 @@ void SampleSummary::AddData(std::vector<TH2Poly*> &Data) {
 }
 
 // *******************
-// Add the nominal histograms to the list (will have N_psyche_samples of these)
+// Add the nominal histograms to the list (will have N_samples of these)
 void SampleSummary::AddNominal(std::vector<TH2Poly*> &Nominal, std::vector<TH2Poly*> &NomW2) {
 // *******************
 
   int Length = Nominal.size();
-  if (!CheckPsycheSamples(Length)) throw;
+  if (!CheckSamples(Length)) throw;
   // Loop over the lenght of nominal and set the initial distributions up
   #ifdef MULTITHREAD
   #pragma omp parallel for
@@ -394,7 +394,7 @@ void SampleSummary::AddThrow(std::vector<TH2Poly*> &SampleVector, std::vector<TH
   if( !isPriorPredictive )RandomHist->Fill(DrawNumber);
 
   int size = SampleVector.size();
-  if (!CheckPsycheSamples(size)) throw;
+  if (!CheckSamples(size)) throw;
 
   // Push back the throw
   MCVector.push_back(SampleVector);
@@ -405,35 +405,35 @@ void SampleSummary::AddThrow(std::vector<TH2Poly*> &SampleVector, std::vector<TH
   #ifdef MULTITHREAD
   #pragma omp parallel for
   #endif
-  for (unsigned int SampleNum = 0;  SampleNum < PsycheSampleMap.size(); SampleNum++) 
+  for (unsigned int SampleNum = 0;  SampleNum < SampleMap.size(); SampleNum++)
   {
-    int PsycheSampleEnum = PsycheSampleMap[SampleNum];
-    if (SampleVector[PsycheSampleEnum] == NULL) continue;
+    int SampleEnum = SampleMap[SampleNum];
+    if (SampleVector[SampleEnum] == NULL) continue;
 
     // Initalise the posterior hist
     if (first_pass) 
     {
        const int nXBins = 5000;
       //Initialise TH1D which corresponds to each bin in the sample's th2poly
-      std::string name = std::string(SampleVector[PsycheSampleEnum]->GetName());
-      for (int i = 0; i <= maxBins[PsycheSampleEnum]; i++)
+      std::string name = std::string(SampleVector[SampleEnum]->GetName());
+      for (int i = 0; i <= maxBins[SampleEnum]; i++)
       {
         std::stringstream ss;
         ss << "_" << i;
-        PosteriorHist[PsycheSampleEnum][i] = new TH1D((name+ss.str()).c_str(), (name+ss.str()).c_str(),nXBins, 1, -1);
-        w2Hist[PsycheSampleEnum][i] = new TH1D((name+ss.str()+"_w2").c_str(), (name+ss.str()+"_w2").c_str(),nXBins, 1, -1);
+        PosteriorHist[SampleEnum][i] = new TH1D((name+ss.str()).c_str(), (name+ss.str()).c_str(),nXBins, 1, -1);
+        w2Hist[SampleEnum][i] = new TH1D((name+ss.str()+"_w2").c_str(), (name+ss.str()+"_w2").c_str(),nXBins, 1, -1);
       } 
     }
     // Fill the sum histogram with the integral of the sampled distribution
-    SumHist[PsycheSampleEnum]->Fill(NoOverflowIntegral(SampleVector[PsycheSampleEnum]));
+    SumHist[SampleEnum]->Fill(NoOverflowIntegral(SampleVector[SampleEnum]));
     // Loop over the distribution and fill the prior/posterior predictive
-    for (int i = 1; i <= maxBins[PsycheSampleEnum]; ++i) {
-      double Content = SampleVector[PsycheSampleEnum]->GetBinContent(i);
-      PosteriorHist[PsycheSampleEnum][i]->Fill(Content);
-      double w2 = W2Vec[PsycheSampleEnum]->GetBinContent(i);
-      w2Hist[PsycheSampleEnum][i]->Fill(w2);
+    for (int i = 1; i <= maxBins[SampleEnum]; ++i) {
+      double Content = SampleVector[SampleEnum]->GetBinContent(i);
+      PosteriorHist[SampleEnum][i]->Fill(Content);
+      double w2 = W2Vec[SampleEnum]->GetBinContent(i);
+      w2Hist[SampleEnum][i]->Fill(w2);
     } // end bin loop
-  } // end nd280 samples loop
+  } // end ND samples loop
   first_pass = false;
 } // end AddThrow
 
@@ -455,44 +455,44 @@ void SampleSummary::AddThrowByMode(std::vector<std::vector<TH2Poly*>> &SampleVec
     #ifdef MULTITHREAD
     #pragma omp parallel for
     #endif
-    for (unsigned int SampleNum = 0;  SampleNum < PsycheSampleMap.size(); SampleNum++) 
+    for (unsigned int SampleNum = 0;  SampleNum < SampleMap.size(); SampleNum++)
     {
-        int PsycheSampleEnum = PsycheSampleMap[SampleNum];
-        if (DataHist[PsycheSampleEnum] == NULL) continue;
+        int SampleEnum = SampleMap[SampleNum];
+        if (DataHist[SampleEnum] == NULL) continue;
         
         if(!DoByModePlots)//Do only first time
         {
-            PosteriorHist_ByMode[PsycheSampleEnum] = new TH1D**[nModes+1];
-            MeanHist_ByMode[PsycheSampleEnum] = new TH2Poly*[nModes+1];
+            PosteriorHist_ByMode[SampleEnum] = new TH1D**[nModes+1];
+            MeanHist_ByMode[SampleEnum] = new TH2Poly*[nModes+1];
         }
         for (int j = 0; j < nModes+1; j++)
         {
             if(!DoByModePlots) //Do only first time
             { 
-                PosteriorHist_ByMode[PsycheSampleEnum][j] = new TH1D*[maxBins[PsycheSampleEnum]];
+                PosteriorHist_ByMode[SampleEnum][j] = new TH1D*[maxBins[SampleEnum]];
                 const int nXBins = 5000;
 
-                std::string name = std::string(NominalHist[PsycheSampleEnum]->GetName());
+                std::string name = std::string(NominalHist[SampleEnum]->GetName());
                 name = name.substr(0, name.find("_nom"));
                 name = name + "_"+Mode_ToString(j);
                 
-                for (int i = 0; i <= maxBins[PsycheSampleEnum]; i++)
+                for (int i = 0; i <= maxBins[SampleEnum]; i++)
                 {
                     std::stringstream ss;
                     ss << "_" << i;
                     //Initialise TH1D which corresponds to each bin in the sample's th2poly
-                    PosteriorHist_ByMode[PsycheSampleEnum][j][i] = new TH1D((name+ss.str()).c_str(),(name+ss.str()).c_str(),nXBins, 1, -1);
+                    PosteriorHist_ByMode[SampleEnum][j][i] = new TH1D((name+ss.str()).c_str(),(name+ss.str()).c_str(),nXBins, 1, -1);
                 } 
-                MeanHist_ByMode[PsycheSampleEnum][j] = (TH2Poly*)(NominalHist[PsycheSampleEnum]->Clone());
-                MeanHist_ByMode[PsycheSampleEnum][j]->SetNameTitle((name+"_mean").c_str(), (name+"_mean").c_str());
-                MeanHist_ByMode[PsycheSampleEnum][j]->Reset("");
-                MeanHist_ByMode[PsycheSampleEnum][j]->GetZaxis()->SetTitle("Mean");
+                MeanHist_ByMode[SampleEnum][j] = (TH2Poly*)(NominalHist[SampleEnum]->Clone());
+                MeanHist_ByMode[SampleEnum][j]->SetNameTitle((name+"_mean").c_str(), (name+"_mean").c_str());
+                MeanHist_ByMode[SampleEnum][j]->Reset("");
+                MeanHist_ByMode[SampleEnum][j]->GetZaxis()->SetTitle("Mean");
             }
             // Loop over the distribution and fill the prior/posterior predictive
-            for (int i = 1; i <= maxBins[PsycheSampleEnum]; ++i) 
+            for (int i = 1; i <= maxBins[SampleEnum]; ++i)
             {
-                double Content = SampleVector_ByMode[PsycheSampleEnum][j]->GetBinContent(i);
-                PosteriorHist_ByMode[PsycheSampleEnum][j][i]->Fill(Content);
+                double Content = SampleVector_ByMode[SampleEnum][j]->GetBinContent(i);
+                PosteriorHist_ByMode[SampleEnum][j][i]->Fill(Content);
             }
         }
     }
@@ -504,46 +504,46 @@ void SampleSummary::PrepareTree() {
 // **********************
 
   // Number of good samples
-  int nPsycheSamples = PsycheSampleMap.size();
+  int NumSamples = SampleMap.size();
 
   // The array of doubles we write to the TTree
   // Data vs Draw
-  llh_data_draw = new double[nPsycheSamples];
+  llh_data_draw = new double[NumSamples];
   // Data vs Fluctuated Draw
-  llh_data_drawfluc = new double[nPsycheSamples];
+  llh_data_drawfluc = new double[NumSamples];
   // Data vs Fluctuated Predictive
-  llh_data_predfluc = new double[nPsycheSamples];
+  llh_data_predfluc = new double[NumSamples];
 
   // Draw vs Predictive
-  llh_draw_pred = new double[nPsycheSamples];
+  llh_draw_pred = new double[NumSamples];
 
   // Fluctuated Draw vs Predictive
-  llh_drawfluc_pred = new double[nPsycheSamples];
+  llh_drawfluc_pred = new double[NumSamples];
   // Fluctuated Draw vs Fluctuated Predictive
-  llh_drawfluc_predfluc = new double[nPsycheSamples];
+  llh_drawfluc_predfluc = new double[NumSamples];
   // Fluctuated Draw vs Draw
-  llh_drawfluc_draw = new double[nPsycheSamples];
+  llh_drawfluc_draw = new double[NumSamples];
   // Fluctuated Predictive vs Predictive
-  llh_predfluc_pred = new double[nPsycheSamples];
+  llh_predfluc_pred = new double[NumSamples];
   // Fluctuated Predicitve vs Draw
-  llh_predfluc_draw = new double[nPsycheSamples];
+  llh_predfluc_draw = new double[NumSamples];
    
   // Fluctuated Data vs Draw
-  llh_datafluc_draw = new double[nPsycheSamples];
+  llh_datafluc_draw = new double[NumSamples];
   
   // Data vs Draw for 1D projection
-  llh_data_draw_ProjectX = new double[nPsycheSamples];
-  llh_drawfluc_draw_ProjectX = new double[nPsycheSamples];
+  llh_data_draw_ProjectX = new double[NumSamples];
+  llh_drawfluc_draw_ProjectX = new double[NumSamples];
     
   // The output tree we're going to write to
   OutputTree = new TTree("LLH_draws", "LLH_draws");
-  SampleNames.resize(nPsycheSamples);
+  SampleNames.resize(NumSamples);
   // Loop over the samples and set the addresses of the variables to write to file
-  for (int i = 0; i < nPsycheSamples; ++i) {
-    // Get the psyche sample number
-    int PsycheSample = PsycheSampleMap[i];
+  for (int i = 0; i < NumSamples; ++i) {
+    // Get the sample number
+    int SampleEnum = SampleMap[i];
     // Get the name
-    std::string SampleName = sampleND->GetSampleName(PsycheSample);
+    std::string SampleName = sampleND->GetSampleName(SampleEnum);
     // Strip out spaces
     while (SampleName.find(" ") != std::string::npos) {
       SampleName.replace(SampleName.find(" "), 1, std::string("_"));
@@ -644,10 +644,10 @@ void SampleSummary::Write() {
   
   // Loop over each sample and write to file
   //KS: Multithreading is tempting here but we also write to ROOT file, seprating all LLH and poly projections from write could work well
-  int nPsycheSamples = PsycheSampleMap.size();
-  for (int j = 0; j < nPsycheSamples; ++j) 
+  int NumSamples = SampleMap.size();
+  for (int j = 0; j < NumSamples; ++j)
   {
-    int i = PsycheSampleMap[j];
+    int i = SampleMap[j];
     
      // Skip the null histograms
     if (DataHist[i] == NULL || NoOverflowIntegral(DataHist[i]) == 0) continue;
@@ -861,40 +861,40 @@ void SampleSummary::MakePredictive() {
   // First make the projection on the z axis of the TH3D* for every pmu cosmu bin
   llh_total = 0.0;
 
-  // Loop over the psyche samples
+  // Loop over the samples
   #ifdef MULTITHREAD
   #pragma omp parallel for reduction(+:llh_total)
   #endif
-  for (unsigned int SampleNum = 0;  SampleNum < PsycheSampleMap.size(); SampleNum++) 
+  for (unsigned int SampleNum = 0;  SampleNum < SampleMap.size(); SampleNum++)
   {
-    int PsycheSampleEnum = PsycheSampleMap[SampleNum];
+    int SampleEnum = SampleMap[SampleNum];
     // Skip disabled samples
-    if (DataHist[PsycheSampleEnum] == NULL || NoOverflowIntegral(DataHist[PsycheSampleEnum]) == 0) continue;
+    if (DataHist[SampleEnum] == NULL || NoOverflowIntegral(DataHist[SampleEnum]) == 0) continue;
 
     // Count the -2LLH for each histogram
     double negLogL_Mean = 0.0;
     double negLogL_Mode = 0.0;
 
     // Loop over each pmu cosmu bin
-    for (int j = 1; j < maxBins[PsycheSampleEnum]+1; ++j) 
+    for (int j = 1; j < maxBins[SampleEnum]+1; ++j)
     {
       //Get PolyBin
-      TH2PolyBin* bin = (TH2PolyBin*)DataHist[PsycheSampleEnum]->GetBins()->At(j-1)->Clone();
+      TH2PolyBin* bin = (TH2PolyBin*)DataHist[SampleEnum]->GetBins()->At(j-1)->Clone();
       
       // Just make a little fancy name
-      std::string name = PosteriorHist[PsycheSampleEnum][j]->GetName();
+      std::string name = PosteriorHist[SampleEnum][j]->GetName();
       std::stringstream ss2;
       ss2 << name << "_";
       ss2 << "p_{#mu} (" << bin->GetXMin() << "-" << bin->GetXMax() << ")";
       ss2 << " cos#theta_{#mu} (" << bin->GetYMin() << "-" << bin->GetYMax() << ")";
-      PosteriorHist[PsycheSampleEnum][j]->SetNameTitle(ss2.str().c_str(), ss2.str().c_str());
-      w2Hist[PsycheSampleEnum][j]->SetNameTitle(("w2_"+ss2.str()).c_str(), ("w2_"+ss2.str()).c_str());
+      PosteriorHist[SampleEnum][j]->SetNameTitle(ss2.str().c_str(), ss2.str().c_str());
+      w2Hist[SampleEnum][j]->SetNameTitle(("w2_"+ss2.str()).c_str(), ("w2_"+ss2.str()).c_str());
       
-      TH1D *Projection = (TH1D*)PosteriorHist[PsycheSampleEnum][j]->Clone();
-      TH1D *W2Projection = (TH1D*)w2Hist[PsycheSampleEnum][j]->Clone();
+      TH1D *Projection = (TH1D*)PosteriorHist[SampleEnum][j]->Clone();
+      TH1D *W2Projection = (TH1D*)w2Hist[SampleEnum][j]->Clone();
 
       // Data content for the j,kth bin
-      double nData = DataHist[PsycheSampleEnum]->GetBinContent(j);
+      double nData = DataHist[SampleEnum]->GetBinContent(j);
       
       // Get the mean for this projection for all the samples
       // This is the mean prediction for this given j,k bin
@@ -919,23 +919,23 @@ void SampleSummary::MakePredictive() {
       negLogL_Mode += 2*TempLLH_Mode;
       
       // Set the content and error to the mean in the bin
-      MeanHist[PsycheSampleEnum]->SetBinContent(j, MeanHist[PsycheSampleEnum]->GetBinContent(j)+nMean);
-      MeanHist[PsycheSampleEnum]->SetBinError(j, nMeanError);
+      MeanHist[SampleEnum]->SetBinContent(j, MeanHist[SampleEnum]->GetBinContent(j)+nMean);
+      MeanHist[SampleEnum]->SetBinError(j, nMeanError);
       // Set the content to the mode in the bin
-      ModeHist[PsycheSampleEnum]->SetBinContent(j, ModeHist[PsycheSampleEnum]->GetBinContent(j)+nMode);
-      ModeHist[PsycheSampleEnum]->SetBinError(j, nModeError);
+      ModeHist[SampleEnum]->SetBinContent(j, ModeHist[SampleEnum]->GetBinContent(j)+nMode);
+      ModeHist[SampleEnum]->SetBinError(j, nModeError);
       // Set the content to the mean in the bin
-      W2MeanHist[PsycheSampleEnum]->SetBinContent(j, W2MeanHist[PsycheSampleEnum]->GetBinContent(j)+nW2Mean);
+      W2MeanHist[SampleEnum]->SetBinContent(j, W2MeanHist[SampleEnum]->GetBinContent(j)+nW2Mean);
       // Set the content to the mode in the bin
-      W2ModeHist[PsycheSampleEnum]->SetBinContent(j, W2ModeHist[PsycheSampleEnum]->GetBinContent(j)+nW2Mode);
+      W2ModeHist[SampleEnum]->SetBinContent(j, W2ModeHist[SampleEnum]->GetBinContent(j)+nW2Mode);
       
       // Set the mean and average LLH for this given bin
       // Can use these hists to see where the largest -2LLH hists come from
-      lnLHist_Mean[PsycheSampleEnum]->SetBinContent(j, 2.0*TempLLH_Mean);
-      lnLHist_Mode[PsycheSampleEnum]->SetBinContent(j, 2.0*TempLLH_Mode);
+      lnLHist_Mean[SampleEnum]->SetBinContent(j, 2.0*TempLLH_Mean);
+      lnLHist_Mode[SampleEnum]->SetBinContent(j, 2.0*TempLLH_Mode);
       
-      lnLHist_Mean1D[PsycheSampleEnum]->Fill(2.0*TempLLH_Mean);
-      lnLHist_Mode1D[PsycheSampleEnum]->Fill(2.0*TempLLH_Mode);
+      lnLHist_Mean1D[SampleEnum]->Fill(2.0*TempLLH_Mean);
+      lnLHist_Mode1D[SampleEnum]->Fill(2.0*TempLLH_Mode);
       
       delete Projection;
       delete W2Projection;
@@ -943,13 +943,13 @@ void SampleSummary::MakePredictive() {
     } // End loop over bins
     
     //KS:: Might consider caching it as we use it once agian much later
-    TH1D *MeanProjectX = ProjectPoly(MeanHist[PsycheSampleEnum], true, PsycheSampleEnum, true);
-    TH1D *W2MeanProjectX = ProjectPoly(W2MeanHist[PsycheSampleEnum], true, PsycheSampleEnum);
+    TH1D *MeanProjectX = ProjectPoly(MeanHist[SampleEnum], true, SampleEnum, true);
+    TH1D *W2MeanProjectX = ProjectPoly(W2MeanHist[SampleEnum], true, SampleEnum);
     // Loop over each pmu bin for 1D projection
-    for (int j = 1; j <= lnLHist_Mean_ProjectX[PsycheSampleEnum]->GetXaxis()->GetNbins(); ++j) 
+    for (int j = 1; j <= lnLHist_Mean_ProjectX[SampleEnum]->GetXaxis()->GetNbins(); ++j)
     {
         // Data content for the j,kth bin
-        double nData = DataHist_ProjectX[PsycheSampleEnum]->GetBinContent(j);
+        double nData = DataHist_ProjectX[SampleEnum]->GetBinContent(j);
         double nMean = MeanProjectX->GetBinContent(j);
         double nW2Mean = W2MeanProjectX->GetBinContent(j);
 
@@ -957,7 +957,7 @@ void SampleSummary::MakePredictive() {
         TempLLH_Mean = sampleND->getTestStatLLH(nData, nMean, nW2Mean);
         
         //KS: do times 2 because banff reports chi2
-        lnLHist_Mean_ProjectX[PsycheSampleEnum]->SetBinContent(j, 2.0*TempLLH_Mean);
+        lnLHist_Mean_ProjectX[SampleEnum]->SetBinContent(j, 2.0*TempLLH_Mean);
     }// End loop over  bins
     
     
@@ -966,31 +966,31 @@ void SampleSummary::MakePredictive() {
         for (int j = 0; j < nModes+1; j++)
         {
             // Loop over each pmu cosmu bin
-            for (int i = 1; i < maxBins[PsycheSampleEnum]+1; ++i) 
+            for (int i = 1; i < maxBins[SampleEnum]+1; ++i)
             {
                 //Get PolyBin
-                TH2PolyBin* bin = (TH2PolyBin*)DataHist[PsycheSampleEnum]->GetBins()->At(i-1)->Clone();
+                TH2PolyBin* bin = (TH2PolyBin*)DataHist[SampleEnum]->GetBins()->At(i-1)->Clone();
                 
                 // Just make a little fancy name
-                std::string name = PosteriorHist_ByMode[PsycheSampleEnum][j][i]->GetName();
+                std::string name = PosteriorHist_ByMode[SampleEnum][j][i]->GetName();
                 std::stringstream ss2;
                 ss2 << name << "_";
                 ss2 << "p_{#mu} (" << bin->GetXMin() << "-" << bin->GetXMax() << ")";
                 ss2 << " cos#theta_{#mu} (" << bin->GetYMin() << "-" << bin->GetYMax() << ")";
-                PosteriorHist_ByMode[PsycheSampleEnum][j][i]->SetNameTitle(ss2.str().c_str(), ss2.str().c_str());
+                PosteriorHist_ByMode[SampleEnum][j][i]->SetNameTitle(ss2.str().c_str(), ss2.str().c_str());
                 
                 // Make the posterior/prior predictive projection on z
                 // The z axis of Predictive is the bin content
                 // Essentailly zooming in on one bin and looking at the mean and mode of that bin
-                TH1D *Projection = (TH1D*)PosteriorHist_ByMode[PsycheSampleEnum][j][i]->Clone();
+                TH1D *Projection = (TH1D*)PosteriorHist_ByMode[SampleEnum][j][i]->Clone();
 
                 // Get the mean for this projection for all the samples
                 double nMean = Projection->GetMean();
                 double nMeanError = Projection->GetRMS();
 
                 // Set the content and error to the mean in the bin
-                MeanHist_ByMode[PsycheSampleEnum][j]->SetBinContent(i, MeanHist_ByMode[PsycheSampleEnum][j]->GetBinContent(i)+nMean);
-                MeanHist_ByMode[PsycheSampleEnum][j]->SetBinError(i, nMeanError);
+                MeanHist_ByMode[SampleEnum][j]->SetBinContent(i, MeanHist_ByMode[SampleEnum][j]->GetBinContent(i)+nMean);
+                MeanHist_ByMode[SampleEnum][j]->SetBinError(i, nMeanError);
 
                 delete Projection;
                 delete bin;
@@ -1075,12 +1075,12 @@ void SampleSummary::MakeChi2Hists() {
     #pragma omp parallel for reduction(+:total_llh_data_draw, total_llh_drawfluc_draw, total_llh_predfluc_draw, total_llh_data_drawfluc, total_llh_data_predfluc, total_llh_draw_pred, total_llh_drawfluc_pred, total_llh_drawfluc_predfluc, total_llh_predfluc_pred, total_llh_datafluc_draw, event_rate, total_llh_data_draw_ProjectX, total_llh_drawfluc_draw_ProjectX)
     #endif
     // Loop over the samples
-    for (unsigned int SampleNum = 0;  SampleNum < PsycheSampleMap.size(); SampleNum++) 
+    for (unsigned int SampleNum = 0;  SampleNum < SampleMap.size(); SampleNum++)
     {
-      int PsycheSampleEnum = PsycheSampleMap[SampleNum];
-      // Get the ith draw for the jth psyche sample
-      TH2Poly *DrawHist = (TH2Poly*)(MCVector[i][PsycheSampleEnum])->Clone();
-      TH2Poly *DrawW2Hist = (TH2Poly*)(W2MCVector[i][PsycheSampleEnum])->Clone();
+      int SampleEnum = SampleMap[SampleNum];
+      // Get the ith draw for the jth sample
+      TH2Poly *DrawHist = (TH2Poly*)(MCVector[i][SampleEnum])->Clone();
+      TH2Poly *DrawW2Hist = (TH2Poly*)(W2MCVector[i][SampleEnum])->Clone();
       // Skip empty samples
       if (DrawHist == NULL) continue;
 
@@ -1114,14 +1114,14 @@ void SampleSummary::MakeChi2Hists() {
       llh_data_predfluc[SampleNum] = 0.0;
 
       // Make the Poisson fluctuated hist
-      TH2Poly *FluctHist = MakeFluctuatedHistogram(MeanHist[PsycheSampleEnum]);
+      TH2Poly *FluctHist = MakeFluctuatedHistogram(MeanHist[SampleEnum]);
       // Also Poisson fluctuate the drawn MCMC hist
       TH2Poly *FluctDrawHist = MakeFluctuatedHistogram(DrawHist);
       // Finally Poisson fluctuate the data hsitogram
-      TH2Poly *DataFlucHist = MakeFluctuatedHistogram(DataHist[PsycheSampleEnum]);
+      TH2Poly *DataFlucHist = MakeFluctuatedHistogram(DataHist[SampleEnum]);
 
       // Likelihood between the drawn histogram and the data
-      double DataDrawLLH = GetLLH(DataHist[PsycheSampleEnum], DrawHist, DrawW2Hist);
+      double DataDrawLLH = GetLLH(DataHist[SampleEnum], DrawHist, DrawW2Hist);
       llh_data_draw[SampleNum] += DataDrawLLH;
       total_llh_data_draw += DataDrawLLH;
       
@@ -1138,32 +1138,32 @@ void SampleSummary::MakeChi2Hists() {
 //    All LLH below are for validation reason but not used for final P-Value
 
       // Likelihood between the fluctuated drawn histogram and the data
-      double DataDrawFlucLLH = GetLLH(DataHist[PsycheSampleEnum], FluctDrawHist, DrawW2Hist);
+      double DataDrawFlucLLH = GetLLH(DataHist[SampleEnum], FluctDrawHist, DrawW2Hist);
       llh_data_drawfluc[SampleNum] += DataDrawFlucLLH;
       total_llh_data_drawfluc += DataDrawFlucLLH;
 
       // Likelihood between the drawn histogram and the data
-      double DataPredFlucLLH = GetLLH(DataHist[PsycheSampleEnum], FluctHist, W2MeanHist[PsycheSampleEnum]);
+      double DataPredFlucLLH = GetLLH(DataHist[SampleEnum], FluctHist, W2MeanHist[SampleEnum]);
       llh_data_predfluc[SampleNum] += DataPredFlucLLH;
       total_llh_data_predfluc += DataPredFlucLLH;
 
       // Likelihood between the drawn hist and the Posterior Predictive
-      double DrawPredLLH = GetLLH(DrawHist, MeanHist[PsycheSampleEnum], W2MeanHist[PsycheSampleEnum]);
+      double DrawPredLLH = GetLLH(DrawHist, MeanHist[SampleEnum], W2MeanHist[SampleEnum]);
       llh_draw_pred[SampleNum] += DrawPredLLH;
       total_llh_draw_pred += DrawPredLLH;
 
       // Likelihood between fluctuated drawn and predictive
-      double DrawFlucPredLLH = GetLLH(FluctDrawHist, MeanHist[PsycheSampleEnum], W2MeanHist[PsycheSampleEnum]);
+      double DrawFlucPredLLH = GetLLH(FluctDrawHist, MeanHist[SampleEnum], W2MeanHist[SampleEnum]);
       llh_drawfluc_pred[SampleNum]  += DrawFlucPredLLH;
       total_llh_drawfluc_pred  += DrawFlucPredLLH;
 
       // Likelihood between drawn histogram and fluctuated drawn histogram
-      double DrawFlucPredFlucLLH = GetLLH(FluctDrawHist, FluctHist, W2MeanHist[PsycheSampleEnum]);
+      double DrawFlucPredFlucLLH = GetLLH(FluctDrawHist, FluctHist, W2MeanHist[SampleEnum]);
       llh_drawfluc_predfluc[SampleNum] += DrawFlucPredFlucLLH;
       total_llh_drawfluc_predfluc += DrawFlucPredFlucLLH;
 
       // Likelihood between the fluctuated drawn histogram and the posterior predictive
-      double PredFlucPredLLH = GetLLH(FluctHist, MeanHist[PsycheSampleEnum], W2MeanHist[PsycheSampleEnum]);
+      double PredFlucPredLLH = GetLLH(FluctHist, MeanHist[SampleEnum], W2MeanHist[SampleEnum]);
       llh_predfluc_pred[SampleNum] += PredFlucPredLLH;
       total_llh_predfluc_pred += PredFlucPredLLH;
 
@@ -1174,19 +1174,19 @@ void SampleSummary::MakeChi2Hists() {
       
       event_rate += NoOverflowIntegral(DrawHist);
       
-      lnLHist_Sample_DrawData[PsycheSampleEnum]->Fill(DataDrawLLH);
-      lnLHist_Sample_DrawflucDraw[PsycheSampleEnum]->Fill(DrawFlucDrawLLH);
-      lnLHist_Sample_PredflucDraw[PsycheSampleEnum]->Fill(PredFlucDrawLLH);
+      lnLHist_Sample_DrawData[SampleEnum]->Fill(DataDrawLLH);
+      lnLHist_Sample_DrawflucDraw[SampleEnum]->Fill(DrawFlucDrawLLH);
+      lnLHist_Sample_PredflucDraw[SampleEnum]->Fill(PredFlucDrawLLH);
       
       
 //    At the end we leave LLH for 1D projections  
-      TH1D *DrawHistProjectX = ProjectPoly(DrawHist, true, PsycheSampleEnum);
-      TH1D *DrawW2HistProjectX = ProjectPoly(DrawW2Hist, true, PsycheSampleEnum);
+      TH1D *DrawHistProjectX = ProjectPoly(DrawHist, true, SampleEnum);
+      TH1D *DrawW2HistProjectX = ProjectPoly(DrawW2Hist, true, SampleEnum);
 
       TH1D *FluctDrawHistProjectX = MakeFluctuatedHistogram(DrawHistProjectX);
       
       // Likelihood between the drawn histogram and the data for muon momentum
-      double DataDrawLLH_ProjectX = GetLLH(DataHist_ProjectX[PsycheSampleEnum], DrawHistProjectX, DrawW2HistProjectX);
+      double DataDrawLLH_ProjectX = GetLLH(DataHist_ProjectX[SampleEnum], DrawHistProjectX, DrawW2HistProjectX);
       llh_data_draw_ProjectX[SampleNum] += DataDrawLLH_ProjectX;
       total_llh_data_draw_ProjectX += DataDrawLLH_ProjectX;
       

@@ -11,7 +11,7 @@
 samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
 // ***************************************************************************
  
-  std::cout << "Creating ND280 instance" << std::endl;
+  std::cout << "Creating ND instance" << std::endl;
 #if USE_SPLINE == USE_TSpline3
   std::cout << "   Using TSpline3" << std::endl;
 #elif USE_SPLINE == USE_TSpline3_red   
@@ -69,12 +69,12 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   ndims = NULL;
   kinvars = NULL;
    
-  // The struct for the ND280 params
+  // Variables related to MC stat
   firsttime = true;
   UpdateW2 = true;
   UpdateW2 = FitManager->GetUpdateW2();
   
-  // Set the ND280 test-statistic
+  // Set the ND test-statistic
   SetTestStatistic(static_cast<TestStatistic>(FitManager->GetMCStatLLH()));
 
   // Get which splines should use a linear function
@@ -89,7 +89,7 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   InitExperimentSpecific();
 
 #ifdef CUDA
-std::cout << "- Using ND280 GPU version " << std::endl;
+std::cout << "- Using ND GPU version " << std::endl;
   #ifdef DEBUG_DUMP
   badWeight = 0;
   nReconf = 0;
@@ -239,7 +239,7 @@ void samplePDFND::LoadSamples() {
 void samplePDFND::setAsimovFakeData(bool CustomReWeight) {
 // ***************************************************************************
 
-   std::cout << "Setting ND280 sample to use Asimov as data..." << std::endl;
+   std::cout << "Setting ND sample to use Asimov as data..." << std::endl;
    if (HaveIRandomStart) {
      std::cerr << "samplePDFND has been set to random start and been reweighted to it" << std::endl;
      std::cerr << "And now being asked to set Asimov data to the random start... I think this is wrong!" << std::endl;
@@ -264,7 +264,7 @@ void samplePDFND::setAsimovFakeData(bool CustomReWeight) {
      XsecCov->setParameters();
    }
 
-   // Loop over all the psyche samples
+   // Loop over all the samples
    for (int i = 0; i < nSamples; ++i) {
 
      // Move to next sample if we haven't enabled this one
@@ -277,7 +277,7 @@ void samplePDFND::setAsimovFakeData(bool CustomReWeight) {
        throw;
      }
 
-     // Strip out the whitespaces and replace them with underscores in the psyche names
+     // Strip out the whitespaces and replace them with underscores in the sample names
      // Will be used in Clone
      std::string temp = SampleName[i];
      while (temp.find(" ") != std::string::npos) {
@@ -305,8 +305,8 @@ void samplePDFND::setAsimovFakeData(bool CustomReWeight) {
 } // end setAsimovFakeData()
 
 // ***************************************************************************
-// Setup the binning for a given psyche sample
-// mosly used by ND280_SigmaVar, could be called in addSelection...
+// Setup the binning for a given sample
+// mosly used by SigmaVar, could be called in addSelection...
 void samplePDFND::SetupBinning(int Selection, std::vector<double> & BinningX, std::vector<double> & BinningY) {
 // ***************************************************************************
   std::cerr<<"Function SetupBinning is experiment specific however core code uses it"<<std::endl;
@@ -320,7 +320,7 @@ void samplePDFND::SetupBinning(int Selection, std::vector<double> & BinningX, st
 void samplePDFND::setAsimovFakeDataFluctuated(bool CustomReWeight) {
 // ***************************************************************************
 
-   std::cout << "Setting ND280 sample to use statistically fluctuated Asimov as data..." << std::endl;
+   std::cout << "Setting ND sample to use statistically fluctuated Asimov as data..." << std::endl;
    if (HaveIRandomStart) {
      std::cerr << "samplePDFND has been set to random start and been reweighted to it" << std::endl;
      std::cerr << "And now being asked to set Asimov data to the random start... I think this is wrong!" << std::endl;
@@ -345,7 +345,7 @@ void samplePDFND::setAsimovFakeDataFluctuated(bool CustomReWeight) {
      XsecCov->setParameters();
    }
 
-   // Loop over all the psyche samples
+   // Loop over all the samples
    for (int i = 0; i < nSamples; ++i) {
 
      // Move to next sample if we haven't enabled this one
@@ -358,7 +358,7 @@ void samplePDFND::setAsimovFakeDataFluctuated(bool CustomReWeight) {
        throw;
      }
 
-     // Strip out the whitespaces and replace them with underscores in the psyche names
+     // Strip out the whitespaces and replace them with underscores in the sample names
      // Will be used in Clone
      std::string temp = SampleName[i];
      while (temp.find(" ") != std::string::npos) {
@@ -387,12 +387,12 @@ void samplePDFND::setAsimovFakeDataFluctuated(bool CustomReWeight) {
 
    // Print the post-Asimov rates
    printRates();
- } // end setAsimovFakeData()
+} // end setAsimovFakeData()
 
 // ***************************************************************************
 void samplePDFND::setAsimovFakeData_FromFile(std::string &FileName) {
 // ***************************************************************************
-   std::cout << "Setting ND280 sample to use fakedata from file " << FileName << " as data..." << std::endl;
+   std::cout << "Setting ND sample to use fakedata from file " << FileName << " as data..." << std::endl;
 
    if (HaveIRandomStart) {
      std::cerr << "samplePDFND has been set to random start and been reweighted to it" << std::endl;
@@ -414,7 +414,7 @@ void samplePDFND::setAsimovFakeData_FromFile(std::string &FileName) {
    }
    AsimovFile->ls();
 
-   // Loop over all the psyche samples
+   // Loop over all the samples
    for (int i = 0; i < nSamples; ++i) {
 
      // Move to next sample if we haven't enabled this one
@@ -427,7 +427,7 @@ void samplePDFND::setAsimovFakeData_FromFile(std::string &FileName) {
        throw;
      }
 
-     // Strip out the whitespaces and replace them with underscores in the psyche names
+     // Strip out the whitespaces and replace them with underscores in the sample names
      // Will be used in Clone
      std::string temp = SampleName[i];
      while (temp.find(" ") != std::string::npos) {
@@ -466,7 +466,7 @@ void samplePDFND::setAsimovFakeData_FromFile(std::string &FileName) {
 // ***************************************************************************
 // This function is used for setting data from a file; it is slightly different
 // from the function used to set fake data for asimovs, as it doesn't check the
-// MC rates at the same time. Mostly used for psyche independence
+// MC rates at the same time.
 void samplePDFND::setDataFromFile(std::string &FileName) {
 // ***************************************************************************
 
@@ -485,13 +485,12 @@ void samplePDFND::setDataFromFile(std::string &FileName) {
   if (!file->IsOpen()) {
     std::cerr << "************" << std::endl;
     std::cerr << "Provided data file " << FileName << " does not exist, exiting" << std::endl;
-    std::cerr << "Data from file is mostly used by psyche independent build " << std::endl;
     std::cerr << "************" << std::endl;
     throw;
   }
   file->ls();
 
-  // Loop over all the psyche samples
+  // Loop over all the samples
   for (int i = 0; i < nSamples; ++i) {
 
     // Move to next sample if we haven't enabled this one
@@ -504,7 +503,7 @@ void samplePDFND::setDataFromFile(std::string &FileName) {
       throw;
     }
 
-    // Strip out the whitespaces and replace them with underscores in the psyche names
+    // Strip out the whitespaces and replace them with underscores in the sample names
     // Will be used in Clone
     std::string temp = SampleName[i];
     while (temp.find(" ") != std::string::npos) {
@@ -540,11 +539,11 @@ void samplePDFND::setDataFromFile(std::string &FileName) {
 // ***************************************************************************
 // Similar to samplePDFND::setAsimovFakeData()
 // Throws the parameters that the fake-data is generated at first so that fake-data is not the nominal parameter set
-// For this to work we need the associated xsec and ND280 covariances
+// For this to work we need the associated xsec and ND covariances
 void samplePDFND::setAsimovFakeDataThrow() {
 // ***************************************************************************
 
-   std::cout << "Setting ND280 sample to use systematically fluctuated Asimov as data..." << std::endl;
+   std::cout << "Setting ND sample to use systematically fluctuated Asimov as data..." << std::endl;
 
    // Check if the relevant covariances have been set
    CheckCovariances();
@@ -564,7 +563,7 @@ void samplePDFND::setAsimovFakeDataThrow() {
    double *fake = 0;
    reweight(fake);
 
-   // Loop over all the psyche samples
+   // Loop over all the samples
    for (int i = 0; i < nSamples; ++i) {
 
      // Move to next sample if we haven't enabled this one
@@ -576,7 +575,7 @@ void samplePDFND::setAsimovFakeDataThrow() {
        throw;
      }
 
-     // Strip out the whitespaces and replace them with underscores in the psyche names
+     // Strip out the whitespaces and replace them with underscores in the sample names
      // Will be used in Clone
      std::string temp = SampleName[i];
      while (temp.find(" ") != std::string::npos) {
@@ -663,7 +662,7 @@ void samplePDFND::EnableModeHistograms() {
        }
      } // End loop over interaction modes
      samplemodepdfs->AddAt(modeobjarray[i], i);
-   } // End loop over psyche samples
+   } // End loop over samples
 
    if (valid == false) {
      std::cerr << "Tried enabling mode pdfs without having any selections enabled" << std::endl;
@@ -675,7 +674,7 @@ void samplePDFND::EnableModeHistograms() {
 
 
 // ***************************************************************************
-// Helper function to print rates for the samples
+// Helper function to print rates for the samples with LLH
 void samplePDFND::printRates(bool dataonly) {
 // ***************************************************************************
     std::cout << std::setw(40) << std::left << "Sample" << std::setw(10) << "Data" << std::setw(10);
@@ -706,33 +705,8 @@ void samplePDFND::printRates(bool dataonly) {
        if(!dataonly) std::cout << std::setw(10) << NoOverflowIntegral((TH2Poly*)(getPDF(i))) << std::setw(10) << likelihood << std::setw(10) << "|" << std::endl;
        else std::cout << std::endl;
      }
-     //KS: Since in psyche independent we separetly give data PDF there is danger that data and MC will not match
-     #ifndef PSYCHESETUP
-     if(!dataonly && datapdfs->At(i) != NULL)
-     {
-        for(int j = 1; j < ((TH2Poly*)datapdfs->At(i))->GetNumberOfBins()+1; j++) 
-        {
-         //KS: There is weird offset between bin content and GetBins so this is correct, inspite of looking funny
-         TH2PolyBin* polybinMC = (TH2PolyBin*)(((TH2Poly*)samplepdfs->At(i))->GetBins()->At(j-1)->Clone());
-         TH2PolyBin* polybinData = (TH2PolyBin*)(((TH2Poly*)datapdfs->At(i))->GetBins()->At(j-1)->Clone());
-         
-         if( std::fabs(polybinData->GetXMin() - polybinMC->GetXMin()) > 0.001 ||
-             std::fabs(polybinData->GetXMax() - polybinMC->GetXMax()) > 0.001 ||
-             std::fabs(polybinData->GetYMin() - polybinMC->GetYMin()) > 0.001 ||
-             std::fabs(polybinData->GetYMax() - polybinMC->GetYMax()) > 0.001  )
-         {
-                std::cout<<"Sample "<<name<<" has different bin edges for data and MC "<<std::endl;
-                std::cout<<"data  "<<" x min "<<polybinData->GetXMin()<<" x max "<<polybinData->GetXMax()<<" y min "<<polybinData->GetYMin()<<" y max "<<polybinData->GetYMax()<<std::endl;
-                std::cout<<"mc    "<<" x min "<<polybinMC->GetXMin()  <<" x max "<<polybinMC->GetXMax()  <<" y min "<<polybinMC->GetYMin()  <<" y max "<<polybinMC->GetYMax()<<std::endl;
-                std::cout<<" Most likely wrong psyche independent file was provided, contact local ND expert "<<std::endl;
-                std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-                throw;
-         }
-         delete polybinMC;
-         delete polybinData;
-       }
-     }
-    #endif
+     //KS: Check make sure data and MC binning is the same
+     CheckBinningMatch();
    }
    if(!dataonly)
       likelihood = getLikelihood();
@@ -746,6 +720,42 @@ void samplePDFND::printRates(bool dataonly) {
 }
 
 
+// ***************************************************************************
+//KS: Helper function check if data and MC binning matches
+void samplePDFND::CheckBinningMatch() {
+// ***************************************************************************
+
+  //WARNING remove it later it later
+  /*
+  //KS: Since in psyche independent we separetly give data PDF there is danger that data and MC will not match
+  #ifndef PSYCHESETUP
+  if(!dataonly && datapdfs->At(i) != NULL)
+  {
+    for(int j = 1; j < ((TH2Poly*)datapdfs->At(i))->GetNumberOfBins()+1; j++)
+    {
+      //KS: There is weird offset between bin content and GetBins so this is correct, inspite of looking funny
+      TH2PolyBin* polybinMC = (TH2PolyBin*)(((TH2Poly*)samplepdfs->At(i))->GetBins()->At(j-1)->Clone());
+      TH2PolyBin* polybinData = (TH2PolyBin*)(((TH2Poly*)datapdfs->At(i))->GetBins()->At(j-1)->Clone());
+
+      if( std::fabs(polybinData->GetXMin() - polybinMC->GetXMin()) > 0.001 ||
+          std::fabs(polybinData->GetXMax() - polybinMC->GetXMax()) > 0.001 ||
+          std::fabs(polybinData->GetYMin() - polybinMC->GetYMin()) > 0.001 ||
+          std::fabs(polybinData->GetYMax() - polybinMC->GetYMax()) > 0.001  )
+      {
+            std::cout<<"Sample "<<name<<" has different bin edges for data and MC "<<std::endl;
+            std::cout<<"data  "<<" x min "<<polybinData->GetXMin()<<" x max "<<polybinData->GetXMax()<<" y min "<<polybinData->GetYMin()<<" y max "<<polybinData->GetYMax()<<std::endl;
+            std::cout<<"mc    "<<" x min "<<polybinMC->GetXMin()  <<" x max "<<polybinMC->GetXMax()  <<" y min "<<polybinMC->GetYMin()  <<" y max "<<polybinMC->GetYMax()<<std::endl;
+            std::cout<<" Most likely wrong psyche independent file was provided, contact local ND expert "<<std::endl;
+            std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
+            throw;
+      }
+      delete polybinMC;
+      delete polybinData;
+    }
+  }
+#endif
+*/
+}
 // ***************************************************************************
 // Change the starting position of the chain by throwing the systematics
 void samplePDFND::RandomStart() {
@@ -776,7 +786,7 @@ void samplePDFND::RandomStart() {
 }
 
 // ***************************************************************************
-// Reweight the Monte-Carlo at ND280 for one step of the Markov Chain
+// Reweight the Monte-Carlo at ND for one step of the Markov Chain
 void samplePDFND::reweight(double* oscpar) {
 // ***************************************************************************
 
@@ -796,8 +806,8 @@ void samplePDFND::reweight(double* oscpar) {
    
     //KS: If you want to not update W2 wights then uncomment this line
     if(!UpdateW2) firsttime = false;
+}
 
- }
 #ifndef MULTITHREAD
 // ***************************************************************************
 void samplePDFND::ReWeight_MC() {
@@ -844,7 +854,7 @@ void samplePDFND::ReWeight_MC() {
         ((TH2Poly*)((TObjArray*)(samplemodepdfs->At(SampleId)))->At(Mode))->SetBinContent(HistBin, weight+((TH2Poly*)((TObjArray*)(samplemodepdfs->At(SampleId)))->At(Mode))->GetBinContent(HistBin));
       }
    } // end for loop
- }
+}
 #else
 // ***************************************************************************
 // Routine for ReWeight_MC_MP on openMP
@@ -2057,7 +2067,7 @@ void samplePDFND::SetSplines_Reduced(TGraph** &xsecgraph, const int EventNumber)
       if (nPoints % 2 != 1) {
         std::cerr << "Reduced spline points method only works for odd number of points, sorry" << std::endl;
         std::cerr << "Change the code in " << __FILE__ << ":" << __LINE__ << std::endl;
-        std::cerr << "Or revert to using _NOT_ reduced spline code at ND280 (see SetSplines function in " << __FILE__ << ")" << std::endl;
+        std::cerr << "Or revert to using _NOT_ reduced spline code at ND (see SetSplines function in " << __FILE__ << ")" << std::endl;
         throw;
       }
       // Skip every second point
@@ -2124,7 +2134,7 @@ void samplePDFND::SetSplines_Reduced(TGraph** &xsecgraph, const int EventNumber)
 #endif
 
 // ***************************************************************************
-// Interface with psyche; set up our experiment, loop over the events (data and MC), associate cross-section splines with events
+// Set up our experiment, loop over the events (data and MC), associate cross-section splines with events
 // Needs to have addSelection called!
 void samplePDFND::fillReweightingBins() {
 // ***************************************************************************

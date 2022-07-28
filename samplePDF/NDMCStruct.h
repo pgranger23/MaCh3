@@ -2,12 +2,12 @@
 
 // ********************************************
 // Struct for ND280 MC Event
-class ND280EVENT {
+class NDEVENT {
   // ********************************************
   public:
     // Virtual functions
-    ND280EVENT();
-    ~ND280EVENT();
+    NDEVENT();
+    ~NDEVENT();
     void Print();
 
     // Momentum of event
@@ -50,12 +50,12 @@ class ND280EVENT {
 
 // ********************************************
 // Struct for ND280 MC Event wiht AUXILIARY variables, which we only need before starting fit
-class ND280EVENT_AUXILIARY {
+class NDEVENT_AUXILIARY {
   // ********************************************
   public:
     // Virtual functions
-    ND280EVENT_AUXILIARY();
-    ~ND280EVENT_AUXILIARY();
+    NDEVENT_AUXILIARY();
+    ~NDEVENT_AUXILIARY();
     void Print();
 
     // is RHC or FHC

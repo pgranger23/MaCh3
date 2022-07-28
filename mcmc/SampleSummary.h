@@ -21,7 +21,7 @@
 class SampleSummary {
 // *******************
   public:
-    SampleSummary(int nSamples, const std::string &Outputfile, int nChainSteps);
+    SampleSummary(int Samples, const std::string &Outputfile, int nChainSteps);
     ~SampleSummary();
 
     void AddData(std::vector<TH2Poly*> &DataHist);
@@ -59,8 +59,8 @@ class SampleSummary {
     void inline MakeCutEventRate(TH1D *Histogram, double DataRate);
     void inline MakeChi2Hists();
 
-    // Check the length of psyche samples agrees
-    bool inline CheckPsycheSamples(int Length);
+    // Check the length of samples agrees
+    bool inline CheckSamples(int Length);
 
     // Helper to make ratio histograms
     template<class HistType> HistType* RatioHists(HistType* NumHist, HistType* DenomHist);
@@ -103,7 +103,7 @@ class SampleSummary {
     __int__ nModes;
 
     // A map to keep track of what psyche sample indices we want. Save some read time
-    std::vector<int> PsycheSampleMap;
+    std::vector<int> SampleMap;
     std::vector<std::string> SampleNames;
 
     // The posterior predictive for the whole selection: this gets built after adding in the toys. Now an array of Th1ds, 1 for each poly bin, for each sample, and the same for W2

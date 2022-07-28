@@ -126,19 +126,19 @@ class samplePDFND : public samplePDFBase {
       void GetKinVars(int sample, KinematicTypes &TypeX, KinematicTypes &TypeY);
 
       // Setup the binning for a given sample
-      void SetupBinning(int Selection, std::vector<double> &BinningX, std::vector<double> &BinningY);
+      virtual void SetupBinning(int Selection, std::vector<double> &BinningX, std::vector<double> &BinningY);
 
       void fillDataFromSamples();
       void fillReweightingBins();
 
       virtual void EnableModeHistograms();
 
+      // Helper function to print rates for the samples with LLH
       void printRates(bool dataonly = false);
-
+      //KS: Helper function check if data and MC binning matches
+      void CheckBinningMatch();
 #ifdef CUDA
       void fillGPUSplines();
-      // The monolith
-      SMonolith *splineMonolith;
 #endif
 
   protected:
@@ -159,7 +159,6 @@ class samplePDFND : public samplePDFBase {
 
       inline void LoadSamples();
 
-      // virtual for GPU
       void SetSplines(TGraph** &xsecgraph, const int i);
 #if USE_SPLINE < USE_TF1
       void SetSplines_Reduced(TGraph** &xsecgraph, const int i);
@@ -212,11 +211,11 @@ class samplePDFND : public samplePDFBase {
       // what is the maximum number of bins we have
       __int__* maxBins;
 
-      // Struct containing the ND280 information
-      std::vector<ND280EVENT> NDEve;
-      std::vector<ND280EVENT_AUXILIARY> NDEve_Aux;
+      // Struct containing the ND information
+      std::vector<NDEVENT> NDEve;
+      std::vector<NDEVENT_AUXILIARY> NDEve_Aux;
 
-      // Dimensions of the ith psyche selection (2D or 1D)
+      // Dimensions of the ith sample (2D or 1D)
       __int__* ndims;
       // The kinematic type we're plotting
       KinematicTypes **kinvars;
@@ -272,6 +271,9 @@ class samplePDFND : public samplePDFBase {
       std::vector<int> linearsplines;
 
 #ifdef CUDA
+      // The monolith
+      SMonolith *splineMonolith;
+      float *vals;
       // Clean up the memory temporarily allocated for GPU preparation
       inline void CleanUpMemory();
       #ifdef DEBUG_DUMP
@@ -288,7 +290,6 @@ class samplePDFND : public samplePDFBase {
       #if USE_SPLINE < USE_TF1
       int *segments;
       #endif
-      float *vals;
 #endif
 
       //WARNING T2K Specyfic
@@ -359,7 +360,7 @@ class samplePDFND : public samplePDFBase {
 // Inspired by TSpline3::Eval, which we can speed up considerably
 // Main reason is that we know that for one parameter (e.g. MAQE) we will have the same number of points, x min, xmax, etc for all MAQE splines, so we can signficantly reduce number of operations
 // The curious can find very similar GPU code in splines/gpuSplineUtils.cu and CPU code in spline/SplineMonolith.cpp::Eval
-// I've included it here for more transparency: this kind of eval should be possible for SK splines too
+// I've included it here for more transparency: this kind of eval should be possible for FD splines too
 template <class T>
 double samplePDFND::FastSplineEval(T* spline, const int SplineNumber) {
 // ***************************************************************************
@@ -394,7 +395,7 @@ double samplePDFND::FastSplineEval(T* spline, const int SplineNumber) {
   double weight = y+dx*(b+dx*(c+d*dx));
 
   // Check that eval on the TSpline3 is the same as our weight
-#ifdef DEBUG
+  #ifdef DEBUG
   int GlobalIndex = splineParsIndex[SplineNumber];
   // Difference between eval and weight
   double diff = fabs(spline->Eval(XsecCov->calcReWeight(GlobalIndex)) - weight);
@@ -441,8 +442,9 @@ double samplePDFND::FastSplineEval(T* spline, const int SplineNumber) {
     std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
     throw;
   }
-#endif
+  #endif
   return weight;
 }
 #endif
-#endif
+
+#endif //end _samplePDFND_h_

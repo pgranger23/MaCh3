@@ -8,7 +8,7 @@ samplePDFFDBase::samplePDFFDBase(double pot, std::string mc_version, covarianceX
 {
   std::cout << "-------------------------------------------------------------------" <<std::endl;
   std::cout << "Creating samplePDFFDBase object.." << "\n" << std::endl;
-  std::cout << "- Using SK sample config in this file " << mc_version << std::endl;
+  std::cout << "- Using FD sample config in this file " << mc_version << std::endl;
 
   //ETA - safety feature so you can't pass a NULL xsec_cov
   if(xsec_cov == NULL){std::cerr << "[ERROR:] You've passed me a NULL xsec covariance matrix... I need this to setup splines!" << std::endl; throw;}
@@ -32,15 +32,20 @@ samplePDFFDBase::samplePDFFDBase(double pot, std::string mc_version, covarianceX
   //KS: For now FD support only one sample
   nSamples = 1;
 
+  //So far only Poisson
+  SetTestStatistic(kPoisson);
+
   //ETA - leave this out for now, need to fix and make things nice and configurable
   //EnergyScale *energy_first = new EnergyScale();
   //energy_first->SetUncertainty(1.2);
   //ShiftFunctors.push_back(energy_first);
 }
 
+// ***************************************************************************
+// Destructor
+samplePDFFDBase::~samplePDFFDBase() {
+// ***************************************************************************
 
-samplePDFFDBase::~samplePDFFDBase()
-{
     std::cout << "Destroying samplePDFFD object" << std::endl;
     int nYBins = YBinEdges.size()-1;
     for (int yBin = 0 ;yBin < nYBins; yBin++)
@@ -235,10 +240,7 @@ void samplePDFFDBase::ReWeight_MC() {
 
   ReconfigureFuncPars();
 
-  for (int iSample=0;iSample<(int)MCSamples.size();iSample++) {
-    MCSamples[iSample].splineFile->FindSplineSegment();
-    MCSamples[iSample].splineFile->calcWeights();
-  }
+  PrepareWeights();
 
   for (unsigned int iSample=0;iSample<MCSamples.size();iSample++) {
     for (int iEvent=0;iEvent<MCSamples[iSample].nEvents;iEvent++) {
@@ -391,13 +393,7 @@ void samplePDFFDBase::ReWeight_MC_MP() {
 	  }
 	}
 
-	//DB From Clarence's suggestion, moved spline weight calculation into this OMP parallel region but this did not reduce s/step
-	//Maybe more efficient to OMP inside splineFile->FindSplineSegment and splineFile->calcWeights
-#pragma omp for
-	for (int iSample=0;iSample<(int)MCSamples.size();iSample++) {
-	  MCSamples[iSample].splineFile->FindSplineSegment();
-	  MCSamples[iSample].splineFile->calcWeights();
-	}
+    PrepareWeights();
 
 	//DB - Brain dump of speedup ideas
 	//
@@ -624,9 +620,25 @@ void samplePDFFDBase::ResetHistograms() {
       samplePDFFD_array[yBin][xBin] = 0.;
     }
   }
-  
-  
 } // end function
+
+
+
+// **************************************************
+void samplePDFFDBase::PrepareWeights() {
+// **************************************************
+
+    //DB From Clarence's suggestion, moved spline weight calculation into this OMP parallel region but this did not reduce s/step
+    //Maybe more efficient to OMP inside splineFile->FindSplineSegment and splineFile->calcWeights
+    #ifdef MULTITHREAD
+    #pragma omp for
+    #endif
+    for (int iSample = 0; iSample < (int)MCSamples.size(); iSample++) {
+      MCSamples[iSample].splineFile->FindSplineSegment();
+      MCSamples[iSample].splineFile->calcWeights();
+    }
+} // end function
+
 
 //ETA
 void samplePDFFDBase::setXsecCov(covarianceXsec *xsec){

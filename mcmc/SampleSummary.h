@@ -32,7 +32,8 @@ class SampleSummary {
     void Write();
     
     void SetLikelihood(int TestStatystic){ likelihood = TestStatystic;};
-    void SetSamplePDF(samplePDFND* const sample){ sampleND = sample;};
+    //KS: Set both sample PDF and ModeStruct
+    void SetSamplePDF(samplePDFND* const sample){ sampleND = sample; ModeStruct = sampleND->GetModeStruct();};
     
   private:
     TRandom3* rnd;
@@ -255,7 +256,9 @@ class SampleSummary {
     TH1D ****PosteriorHist_ByMode;
 
     samplePDFND* sampleND;
-    
+    //GetterForModes
+    MaCh3_Modes* ModeStruct;
+
     //Type of likelihood for example Poisson, Barlow-Beestion or Ice Cube
     int likelihood;
 };

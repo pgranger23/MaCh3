@@ -29,7 +29,6 @@ SampleSummary::SampleSummary(const int Samples, const std::string &Filename, int
   OutputTree = NULL;
 
   nModes = 0;
-  nModes = GetNModes();
   rnd = new TRandom3();
 
   DataHist = new TH2Poly*[nSamples];
@@ -439,10 +438,11 @@ void SampleSummary::AddThrow(std::vector<TH2Poly*> &SampleVector, std::vector<TH
 
 // *******************
 // Add a throw from the MCMC to the posterior predictive
-// The input here is has dimension [nsample][nMaCh3Modes]
+// The input here is has dimension [nSample][nModes]
 void SampleSummary::AddThrowByMode(std::vector<std::vector<TH2Poly*>> &SampleVector_ByMode) {
 // *******************
 
+    nModes = ModeStruct->GetNModes();
     //KS: This means this is first time
     if(!DoByModePlots)
     {
@@ -474,7 +474,7 @@ void SampleSummary::AddThrowByMode(std::vector<std::vector<TH2Poly*>> &SampleVec
 
                 std::string name = std::string(NominalHist[SampleEnum]->GetName());
                 name = name.substr(0, name.find("_nom"));
-                name = name + "_"+Mode_ToString(j);
+                name = name + "_"+ModeStruct->Mode_ToString(j);
                 
                 for (int i = 0; i <= maxBins[SampleEnum]; i++)
                 {

@@ -389,43 +389,14 @@ double CalculateEnu(double PLep, double costh, double Eb, bool neutrino){
 
 }
 
+// **************************************************
 //DB Get the Cernekov momentum threshold in MeV
-double returnCherenkovThresholdMomentum(int PDG)
-{
+double returnCherenkovThresholdMomentum(int PDG) {
+// **************************************************
   double refractiveIndex = 1.334; //DB From https://github.com/fiTQun/fiTQun/blob/646cf9c8ba3d4f7400bcbbde029d5ca15513a3bf/fiTQun_shared.cc#L757
   double mass =  MaCh3Utils::GetMassFromPDG(PDG)*1e3;
   double momentumThreshold = mass/sqrt(refractiveIndex*refractiveIndex-1.);
   return momentumThreshold;
-}
-
-// **************************************************
-int GetMaCh3Modes(){
-// **************************************************
-  std::cerr<<"Function GetMaCh3Modes is experiment specific however core code uses it"<<std::endl;
-  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
-  throw;
-
-  return 0;
-}
-
-// **************************************************
-std::string Mode_ToString(int i){
-// **************************************************
-  std::cerr<<"Function Mode_ToString is experiment specific however core code uses it"<<std::endl;
-  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
-  throw;
-
-  return 0;
-}
-
-// **************************************************
-std::string Mode_ToFancyString(int i){
-// **************************************************
-  std::cerr<<"Function Mode_ToFancyString is experiment specific however core code uses it"<<std::endl;
-  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
-  throw;
-
-  return 0;
 }
 
 // ***************************************************************************
@@ -460,6 +431,35 @@ int parseLine(char* line){
 }
 
 
+// **************************************************
+int MaCh3_Modes::GetNModes(){
+// **************************************************
+  std::cerr<<"Function GetNModes is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
+
+  return 0;
+}
+
+// **************************************************
+std::string MaCh3_Modes::Mode_ToString(int i){
+// **************************************************
+  std::cerr<<"Function Mode_ToString is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
+
+  return 0;
+}
+
+// **************************************************
+std::string MaCh3_Modes::Mode_ToFancyString(int i){
+// **************************************************
+  std::cerr<<"Function Mode_ToFancyString is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
+
+  return 0;
+}
 
 /*
 //DB Function used to define which mode splines are selected for which MaCh3 modes

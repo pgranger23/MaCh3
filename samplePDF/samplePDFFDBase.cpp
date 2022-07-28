@@ -31,6 +31,7 @@ samplePDFFDBase::samplePDFFDBase(double pot, std::string mc_version, covarianceX
 
   //KS: For now FD support only one sample
   nSamples = 1;
+  SampleName.push_back("FDsample");
 
   //So far only Poisson
   SetTestStatistic(kPoisson);

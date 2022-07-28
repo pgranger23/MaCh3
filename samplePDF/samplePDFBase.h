@@ -31,9 +31,6 @@ class samplePDFBase : public samplePDFInterface
   samplePDFBase(double pot);
   virtual ~samplePDFBase();
 
-  void getModeName(std::vector<std::string> &modeNameVect, bool latex=false) ;
-  void getSampleName(std::vector<std::string> &sampleNameVect, bool latex=false) ;
-
   TH1D* get1DHist();                                               
   TH2D* get2DHist();
   TH1D* get1DDataHist(){return dathist;}
@@ -50,8 +47,8 @@ class samplePDFBase : public samplePDFInterface
   vector<double> generate();
   virtual double getLikelihood();
   virtual std::vector<double>* getDataSample() {return dataSample;};
-  covarianceXsec * const GetXsecCov() const { return XsecCov; };
-
+  covarianceXsec* const GetXsecCov() const { return XsecCov; };
+  MaCh3_Modes* const GetModeStruct() const { return ModeStruct;};
 
   // nominal spectrum things
   //  double getLikelihoodNominal(); // computes the likelihood against a nominal spectra
@@ -72,7 +69,9 @@ class samplePDFBase : public samplePDFInterface
   virtual void setMCMCBranches(TTree *outtree) {};
 
   __int__ GetNsamples(){ return nSamples; };
-  std::string GetSampleName(int Selection){ return SampleName[Selection]; };
+  std::string GetSampleName(int Sample);
+  inline void GetSampleNames(std::vector<std::string> &sampleNameVect) ;
+  inline void GetModeName(std::vector<std::string> &modeNameVect);
 
   protected:
   void init(double pot);
@@ -80,7 +79,8 @@ class samplePDFBase : public samplePDFInterface
   
   // Contains how many samples we've got
   __int__ nSamples;
-
+  // Dimension of sample
+  int nDims;
   //Name of Sample
   std::vector<std::string> SampleName;
 
@@ -118,7 +118,6 @@ class samplePDFBase : public samplePDFInterface
   std::vector<double>* dataSample;
   std::vector< vector <double> >* dataSample2D;
   //KS: number of dimension for this sample
-  int nDims;
   TH1D *dathist; // tempstore for likelihood calc
   TH2D *dathist2d;    
   
@@ -132,9 +131,11 @@ class samplePDFBase : public samplePDFInterface
   //splines
   splineBase* xsecsplines;
 
+  //GetterForModes
+  MaCh3_Modes* ModeStruct;
+
   TRandom3* rnd;
   bool MCthrow;
-
 
 };
 

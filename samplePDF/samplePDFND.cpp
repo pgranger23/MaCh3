@@ -64,7 +64,6 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   modeobjarray = NULL;
 
   nModes = 0;
-  nModes = GetNModes();
 
   ndims = NULL;
   kinvars = NULL;
@@ -80,13 +79,15 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   // Get which splines should use a linear function
   linearsplines = FitManager->GetXsecLinearSpline();
 
+  InitExperimentSpecific();
+
   // Then load the samples
   LoadSamples();
   
   // Enable the mode histograms AFTER addSelection is called
   if (FitManager->getPlotByMode()) EnableModeHistograms();
 
-  InitExperimentSpecific();
+
 
 #ifdef CUDA
 std::cout << "- Using ND GPU version " << std::endl;
@@ -221,6 +222,8 @@ void samplePDFND::InitExperimentSpecific() {
     std::cerr << "EXPORT NIWG to your NIWGReWeight environment" << std::endl;
     throw;
   }
+
+  ModeStruct = MaCh3_Modes_T2K();
   */
 }
 
@@ -618,6 +621,7 @@ void samplePDFND::setAsimovFakeDataThrow() {
 void samplePDFND::EnableModeHistograms() {
 // ***************************************************************************
 
+  nModes = ModeStruct->GetNModes();
    if (modepdf == true) {
      std::cout << "Already enabled modepdf but you're trying to do so again" << std::endl;
      std::cout << "Just returning to caller..." << std::endl;
@@ -695,7 +699,7 @@ void samplePDFND::printRates(bool dataonly) {
        {
         sumMC   += NoOverflowIntegral((TH2Poly*)(getPDF(i)));
         /*for (int k = 0; k < nModes+1; k++) {
-          std::string ModeName = std::string("MC")+name+"_"+Mode_ToString(k);
+          std::string ModeName = std::string("MC")+name+"_"+ModeStruct->Mode_ToString(k);
           std::cout << std::setw(40) << std::left << ModeName <<  NoOverflowIntegral(((TH2Poly*)getPDFMode(i,k))) << std::setw(10) << "|"<<std::endl;
         }*/
         likelihood = getSampleLikelihood(i);
@@ -756,6 +760,7 @@ void samplePDFND::CheckBinningMatch() {
 #endif
 */
 }
+
 // ***************************************************************************
 // Change the starting position of the chain by throwing the systematics
 void samplePDFND::RandomStart() {
@@ -2842,7 +2847,7 @@ void samplePDFND::CompareCPU_GPU_Splines(const int EventNumber) {
       std::cerr << "Found difference in splines greater than 1E-5!" << std::endl;
 
       std::cerr << "   Event no:      " << EventNumber << std::endl;
-      std::cerr << "   Event mode:    " << Mode_ToString(xsecInfo[EventNumber].mode) << std::endl;
+      std::cerr << "   Event mode:    " << ModeStruct->Mode_ToString(xsecInfo[EventNumber].mode) << std::endl;
       std::cerr << "   Event species: " << xsecInfo[EventNumber].species << std::endl;
 
       std::cerr << "   Parameter:     " << splineParsNames[id] << std::endl;

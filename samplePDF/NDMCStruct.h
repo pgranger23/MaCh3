@@ -36,15 +36,6 @@ class NDEVENT {
     // One time weight to apply to event, e.g. NC1gamma
     __float__ weight;
 
-    //TODO WARNING Those are T2K specyfic keep them for now
-    //EB Dial
-    //niwg::NIWGSyst_t eb_dial;
-    // EB Shift bin
-    //__int__ eb_bin;
-    // q3 of event
-    //__float__ q3;
-    //Sepcial varaible used to contraining Eb shift so nucleon stays bounded
-    //__float__ DeltaPForEMiss0;
 };
 
 

@@ -15,11 +15,6 @@ NDEVENT::NDEVENT() {
     nxsec_norm_pointers = __BAD_INT__;
     mode = __BAD_INT__;
     weight = __BAD_DOUBLE__;
-
-    //TODO WARNING Those are T2K specyfic keep them for now
-    //eb_bin = __BAD_INT__;
-    //q3 = __BAD_DOUBLE__;
-    //DeltaPForEMiss0 = __BAD_DOUBLE__;
 }
 
 // ********************
@@ -43,11 +38,6 @@ void NDEVENT::Print() {
   std::cout << "    " << std::left << std::setw(20) << "Constant Weight: " << flux_w << std::endl;
   std::cout << "    " << std::left << std::setw(20) << "Mode: " << mode << std::endl;
   std::cout << "    " << std::left << std::setw(20) << "One time Xsec weight to apply: " << weight << std::endl;
-
-  //TODO WARNING Those are T2K specyfic keep them for now
-  //std::cout << "    " << std::left << std::setw(20) << "Eb bin: " << eb_bin << std::endl;
-  //std::cout << "    " << std::left << std::setw(20) << "q3: " << q3 << " MeV" << std::endl;
-  //std::cout << "    " << std::left << std::setw(20) << "DeltaPForEMiss0: " << DeltaPForEMiss0 << std::endl;
 }
 
 

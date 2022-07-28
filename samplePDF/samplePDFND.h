@@ -79,20 +79,17 @@ class samplePDFND : public samplePDFBase {
       ~samplePDFND();
 
       //KS: Each experiment uses some specyfic variables, make template fucnion for it
-      void InitExperimentSpecific();
+      virtual void InitExperimentSpecific();
 
       // The different covariance matrices to be associated with the samplePDF
       void setXsecCov(covarianceXsec * const xsec_cov);
-      //WARNING FIXME TODO T2K specyfic
-      //void setSimpleDetCov(covarianceNDDetPoly * const indet) { NDDetCov = indet; }
-      //covarianceNDDetPoly * const GetSimpleDetCov() const { return NDDetCov; }
 
       // Function to set the Asimov fake-data from within samplePDF
       // Put this back in
       void setAsimovFakeData(bool CustomReWeight = false);
       void setDataFromFile(std::string &FileName);
       void setAsimovFakeData_FromFile(std::string &FileName);
-      void setAsimovFakeDataThrow();
+      virtual void setAsimovFakeDataThrow();
       void setAsimovFakeDataFluctuated(bool CustomReWeight = false);
 
       double getLikelihood();
@@ -115,7 +112,7 @@ class samplePDFND : public samplePDFBase {
       void addData(TH2Poly* binneddata, int index);
 
       // Randomize the starting position
-      void RandomStart();
+      virtual void RandomStart();
       
       // Getters for the event histograms
       TH1* getPDF(int Selection);
@@ -136,35 +133,35 @@ class samplePDFND : public samplePDFBase {
       // Helper function to print rates for the samples with LLH
       void printRates(bool dataonly = false);
       //KS: Helper function check if data and MC binning matches
-      void CheckBinningMatch();
+      virtual void CheckBinningMatch();
 #ifdef CUDA
       void fillGPUSplines();
 #endif
 
   protected:
       //KS: Find Detector bin, hist bin and other useful information using multithreading
-      inline void FindAdditionalInfo();
+      virtual void FindAdditionalInfo();
       
       // Helper function to find normalisation bins for normalisation parameters that aren't simply a mode scaling
       // e.g. different normalisation parameters for carbon and oxygen, neutrino and anti-neutrino, etc
-      inline void FindNormBins();
+      void FindNormBins();
 
       //KS: Find pointer for each norm dial to reduce impact of covarianceXsec::calcReweight()
-      inline void FindNormPointer();
+      void FindNormPointer();
 
       // Reserve spline memory 
       void ReserveMemory(int nEve);
       // Prepare weights
       void PrepareWeights();
 
-      inline void LoadSamples();
+      virtual void LoadSamples();
 
       void SetSplines(TGraph** &xsecgraph, const int i);
 #if USE_SPLINE < USE_TF1
       void SetSplines_Reduced(TGraph** &xsecgraph, const int i);
 #endif
       // Helper function to check if the covariances have been set
-      inline void CheckCovariances();
+      virtual void CheckCovariances();
 
       // Perform the main reweight loop
 #ifdef MULTITHREAD
@@ -180,10 +177,10 @@ class samplePDFND : public samplePDFBase {
       inline void ResetHistograms();
 
       //KS: Helper which initlaise PDF
-      inline void InitialisePDF();
+      void InitialisePDF();
 
-      //Helper which udpate data arrays from histogram
-      inline void UpdateDataPDF();
+      //KS: Helper which udpate data arrays from histogram
+      void UpdateDataPDF();
 
       // Calculate the cross-section weight for a given event
       double CalcXsecWeight(const int EventNumber);
@@ -191,15 +188,14 @@ class samplePDFND : public samplePDFBase {
       double CalcXsecWeight_Spline(const int EventNumber);
       // Calculate the norm weight for a given event
       double CalcXsecWeight_Norm(const int EventNumber);
+      // Calculate the detector weight for a given event
+      virtual double CalcDetWeight(const int EventNumber);
       // Calculate the func weight for a given event
       virtual double CalcXsecWeight_Func(const int EventNumber){return 1.;};
       bool HaveIRandomStart; // Have I random started?
 
       // Pointer to fit manager
       manager *FitManager;
-
-      // The covariance classes
-      covarianceBase* NDDetCov;
 
       // This is the number of cross-section splines we're loading
       // This one is read from setCovMatrix function which looks at the input covariance and counts the number of cross-section splines
@@ -291,23 +287,6 @@ class samplePDFND : public samplePDFBase {
       int *segments;
       #endif
 #endif
-
-      //WARNING T2K Specyfic
-      /*
-      //KS: Use 2D or 1D Binding Energy
-      bool Use2dEb;
-
-      // String with what production we want
-      TString *prod;
-
-      bool UseSandMC; //whether to use sand or not
-      //set if you want to use sand or not
-      void setSandMC(bool useSand){ UseSandMC=useSand;};
-      bool UseSandMC; //whether to use sand or not
-      // Use covariance matrix for detector
-      bool simple;
-      */
-
 
       // Array of FastSplineInfo structs: keeps information on each xsec spline for fast evaluation
       // Method identical to TSpline3::Eval(double) but faster because less operations

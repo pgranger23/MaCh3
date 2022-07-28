@@ -44,8 +44,6 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   samplePDF_mode_array = NULL;
 #endif
 
-  // Pointer to covarianceNDDetPoly
-  NDDetCov = NULL;
   // Pointer to covarianceXsec
   XsecCov    = NULL;
   
@@ -171,7 +169,6 @@ samplePDFND::~samplePDFND() {
   delete FitManager;
 
   if (XsecCov)  delete XsecCov;
-  if (NDDetCov) delete NDDetCov;
 #ifdef CUDA
   delete splineMonolith;
 #endif
@@ -181,50 +178,9 @@ samplePDFND::~samplePDFND() {
 //KS: Each experiment uses some specyfic variables, make template function for it
 void samplePDFND::InitExperimentSpecific() {
 // ***************************************************************************
-
-  //WARNING FIXME TODO This is for the time being
-  /*
-  // What production we're using
-  TString production = FitManager->getNDRuns();
-  std::cout << "production: " << production << std::endl;
-  // Currently not set in the manager. Dictates if we run with simple ND280 detector treatment, i.e. treat ND280 systematics as normalisations in pmu cosmu bins for each selection
-  simple = true;
-
-
-  Use2dEb = false;
-
-  UseSandMC = true;
-  setSandMC(FitManager->getUseSand());
-  // Do some checks on the requested production
-  if (production == "") {
-    std::cerr << "You gave me an empty production!\nExiting!" << std::endl;
-    throw;
-  }
-  if (!production.Contains("P6")) {
-    std::cout << "Production: " << production.Data() << std::endl;
-    std::cerr << "I only support P6 sorry!" << std::endl;
-    throw;
-  }
-
-  TString prod_copy(production);
-  prod_copy.Remove(prod_copy.First(' '), prod_copy.Length() - prod_copy.First(' '));
-  if (prod_copy != "P6" && prod_copy != "P6_S17" && prod_copy != "P6T") {
-    std::cerr << "Did not find good good production, exiting" << std::endl;
-    std::cerr << "You gave " << prod_copy << ", I need P6 or P6_S17 or P6T" << std::endl;
-    throw;
-  }
-  // Do we really need a new here? Surely setting the string should be fine
-  // Warning, something does indeed break, investigate this in the future
-  prod = new TString(production);
-
-  if (std::getenv("NIWG_ROOT") == NULL) {
-    std::cerr << "Need NIWG environment variable to run with Eb" << std::endl;
-    std::cerr << "EXPORT NIWG to your NIWGReWeight environment" << std::endl;
-    throw;
-  }
-
-  ModeStruct = MaCh3_Modes_T2K();
-  */
+  std::cerr<<"Function InitExperimentSpecific is experiment specific however core code uses it"<<std::endl;
+  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
+  throw;
 }
 
 // ***************************************************************************
@@ -300,7 +256,6 @@ void samplePDFND::setAsimovFakeData(bool CustomReWeight) {
    std::cout << "Have set Asimov fake-data to reweighted MC" << std::endl;
    std::cout << "With cross-section settings: " << std::endl;
    XsecCov->printNominalCurrProp();
-   //NDDetCov->printNominalCurrProp();
    std::cout << "------------------------------------------" << std::endl;
 
    // Print the post-Asimov rates
@@ -385,7 +340,6 @@ void samplePDFND::setAsimovFakeDataFluctuated(bool CustomReWeight) {
    std::cout << "Have set Asimov fake-data to fluctuated MC" << std::endl;
    std::cout << "With cross-section settings: " << std::endl;
    XsecCov->printNominalCurrProp();
-   //NDDetCov->printNominalCurrProp();
    std::cout << "------------------------------------------" << std::endl;
 
    // Print the post-Asimov rates
@@ -457,7 +411,6 @@ void samplePDFND::setAsimovFakeData_FromFile(std::string &FileName) {
    std::cout << "Have set Asimov fake-data to reweighted MC" << std::endl;
    std::cout << "With cross-section settings: " << std::endl;
    XsecCov->printNominalCurrProp();
-   //NDDetCov->printNominalCurrProp();
    std::cout << "------------------------------------------" << std::endl;
 
    // Print the post-Asimov rates
@@ -538,83 +491,6 @@ void samplePDFND::setDataFromFile(std::string &FileName) {
   delete file;
 }
 
-
-// ***************************************************************************
-// Similar to samplePDFND::setAsimovFakeData()
-// Throws the parameters that the fake-data is generated at first so that fake-data is not the nominal parameter set
-// For this to work we need the associated xsec and ND covariances
-void samplePDFND::setAsimovFakeDataThrow() {
-// ***************************************************************************
-
-   std::cout << "Setting ND sample to use systematically fluctuated Asimov as data..." << std::endl;
-
-   // Check if the relevant covariances have been set
-   CheckCovariances();
-
-   // Don't want nominal values so set bool to false
-   // Throw xsec
-   XsecCov->throwNominal(false);
-   XsecCov->setParameters();
-   XsecCov->printNominalCurrProp();
-   // Throw detector
-   NDDetCov->throwNominal(false);
-   NDDetCov->setParameters();
-   // Don't necessarily wan't to print this bad-boy (580 parameters)
-   //NDDetCov->printNominalCurrProp();
-
-   // Now reweight the samplePDF with the new thrown parameters
-   double *fake = 0;
-   reweight(fake);
-
-   // Loop over all the samples
-   for (int i = 0; i < nSamples; ++i) {
-
-     // Move to next sample if we haven't enabled this one
-     if (samplepdfs->At(i) == NULL || datapdfs->At(i) == NULL) continue;
-
-     if (ndims[i] != 2) {
-       std::cerr << "Can not set Asimov data for other than 2D histograms for " << SampleName[i] << std::endl;
-       std::cerr << "Simply a matter of implementation; to edit this see " << __FILE__ << ":" << __LINE__ << std::endl;
-       throw;
-     }
-
-     // Strip out the whitespaces and replace them with underscores in the sample names
-     // Will be used in Clone
-     std::string temp = SampleName[i];
-     while (temp.find(" ") != std::string::npos) {
-       temp.replace(temp.find(" "), 1, std::string("_"));
-     }
-
-     // Just clone the MC for the simple setAsimovFakeData()
-     TH2Poly* MCpdf = (TH2Poly*)(getPDF(i))->Clone(temp.c_str());
-     // Pass the pointer to addData
-     addData(MCpdf, i);
-   } 
-   // end for loop
-
-   //KS: Update data pdf from new inserted histograms
-   if(samplePDF_data_array != NULL) UpdateDataPDF();
-
-   // Let's throw the parameters so that MC != Asimov data
-   // Don't want nominal values so set bool to false
-   // Throw xsec
-   XsecCov->throwNominal(false);
-   XsecCov->setParameters();
-   XsecCov->printNominalCurrProp();
-   // Throw detector
-   NDDetCov->throwNominal(false);
-   NDDetCov->setParameters();
-   // Don't necessarily wan't to print this bad-boy
-   //NDDetCov->printNominalCurrProp();
-   reweight(fake);
-
-   std::cout << "------------------------------------------" << std::endl;
-   std::cout << "Have set Asimov fake-data to varied reweighted MC" << std::endl;
-   std::cout << "------------------------------------------" << std::endl;
-
-   // Print the post-Asimov rates
-   printRates();
-} // end setAsimovFakeData()
 
 // ***************************************************************************
 // Function which enables the samplePDFs to be plotted in accordance to interaction mode
@@ -720,75 +596,10 @@ void samplePDFND::printRates(bool dataonly) {
       std::cout<< sumMC << std::setw(10) << likelihood << std::setw(10) << "|" << std::endl;
    else
       std::cout << std::endl;
-   //NDDetCov->printNominalCurrProp();
 }
 
 
-// ***************************************************************************
-//KS: Helper function check if data and MC binning matches
-void samplePDFND::CheckBinningMatch() {
-// ***************************************************************************
 
-  //WARNING remove it later it later
-  /*
-  //KS: Since in psyche independent we separetly give data PDF there is danger that data and MC will not match
-  #ifndef PSYCHESETUP
-  if(!dataonly && datapdfs->At(i) != NULL)
-  {
-    for(int j = 1; j < ((TH2Poly*)datapdfs->At(i))->GetNumberOfBins()+1; j++)
-    {
-      //KS: There is weird offset between bin content and GetBins so this is correct, inspite of looking funny
-      TH2PolyBin* polybinMC = (TH2PolyBin*)(((TH2Poly*)samplepdfs->At(i))->GetBins()->At(j-1)->Clone());
-      TH2PolyBin* polybinData = (TH2PolyBin*)(((TH2Poly*)datapdfs->At(i))->GetBins()->At(j-1)->Clone());
-
-      if( std::fabs(polybinData->GetXMin() - polybinMC->GetXMin()) > 0.001 ||
-          std::fabs(polybinData->GetXMax() - polybinMC->GetXMax()) > 0.001 ||
-          std::fabs(polybinData->GetYMin() - polybinMC->GetYMin()) > 0.001 ||
-          std::fabs(polybinData->GetYMax() - polybinMC->GetYMax()) > 0.001  )
-      {
-            std::cout<<"Sample "<<name<<" has different bin edges for data and MC "<<std::endl;
-            std::cout<<"data  "<<" x min "<<polybinData->GetXMin()<<" x max "<<polybinData->GetXMax()<<" y min "<<polybinData->GetYMin()<<" y max "<<polybinData->GetYMax()<<std::endl;
-            std::cout<<"mc    "<<" x min "<<polybinMC->GetXMin()  <<" x max "<<polybinMC->GetXMax()  <<" y min "<<polybinMC->GetYMin()  <<" y max "<<polybinMC->GetYMax()<<std::endl;
-            std::cout<<" Most likely wrong psyche independent file was provided, contact local ND expert "<<std::endl;
-            std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
-            throw;
-      }
-      delete polybinMC;
-      delete polybinData;
-    }
-  }
-#endif
-*/
-}
-
-// ***************************************************************************
-// Change the starting position of the chain by throwing the systematics
-void samplePDFND::RandomStart() {
-// ***************************************************************************
-
-   HaveIRandomStart = true;
-
-   CheckCovariances();
-   
-   std::vector<covarianceBase*> Systematics;
-   if (XsecCov) Systematics.push_back(XsecCov);
-
-   if (NDDetCov) Systematics.push_back(NDDetCov);
-
-   // Reconfigure the systematics randomly
-   for (std::vector<covarianceBase*>::iterator it = Systematics.begin(); it != Systematics.end(); it++) {
-     (*it)->RandomConfiguration();
-   }
-
-   // Then reweight the simulation to the random configuration
-   std::cout << "Reweighting the sample for a random start..." << std::endl;
-   double *fake = NULL;
-   reweight(fake);
-
-   // Print the rates
-   std::cout << "Printing rates after the random start:" << std::endl;
-   printRates();
-}
 
 // ***************************************************************************
 // Reweight the Monte-Carlo at ND for one step of the Markov Chain
@@ -836,9 +647,7 @@ void samplePDFND::ReWeight_MC() {
       //KS:If weight is 0 or less skip event as it will have no effect on fit and we can decrease step time roughly by 8%
       if(xsecw <= 0) continue;
 
-      // Get the detector weight
-      //a bit hacky: if the event is in the overflow, we assign the detector bin as the last one in that row. BANFF are just not applying a weight though, but it would be messy to not assign a bin at all. So now we're still assigning that last bin in the row, but now applying the weight if we're above 30000. This only affects the overflow, and is a very small effect anyway. See covariance/covarianceNDDetPoly:getBin() for how the bin is assignment is done
-      if(NDEve[i].mom < 30000 && NDEve[i].mom > 0) detw = NDDetCov->calcReWeight(NDEve[i].det_bin);
+      detw = CalcDetWeight(i);
 
       CalcFuncPars(i);
 
@@ -931,9 +740,7 @@ void samplePDFND::ReWeight_MC_MP() {
        //KS:If weight is 0 or less skip event as it will have no effect on fit and we can decrease step time roughly by 8%
        if(xsecw <= 0) continue;
 #endif      
-       // Get the detector weight
-       //a bit hacky: if the event is in the overflow, we assign the detector bin as the last one in that row. BANFF are just not applying a weight though, but it would be messy to not assign a bin at all. So now we're still assigning that last bin in the row, but now applying the weight if we're above 30000. This only affects the overflow, and is a very small effect anyway. See covariance/covarianceNDDetPoly:getBin() for how the bin is assignment is done
-       if(NDEve[i].mom < 30000 && NDEve[i].mom > 0) detw = NDDetCov->calcReWeight(NDEve[i].det_bin);
+       CalcDetWeight(i);
        
        CalcFuncPars(i);
        
@@ -1435,6 +1242,11 @@ void samplePDFND::setXsecCov(covarianceXsec * const xsec_cov) {
   for (int i = 0; i < XsecCov->GetNumParams(); i++) {
     xsecBitField.push_back(XsecCov->GetXSecParamID(i,1));
   }
+
+  // Set number of splines based on xsec matrix
+  nXsecSplines = XsecCov->GetNumSplineParamsUniq();
+
+  std::cout << "done nXsecSplines" <<std::endl;
 
   // Output the normalisation parameters as a sanity check!
   std::cout << "Normalisation parameters: " << std::endl;
@@ -2343,26 +2155,6 @@ void samplePDFND::FindAdditionalInfo() {
   std::cerr<<"Function LoadSamples is experiment specific however core code uses it"<<std::endl;
   std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
   throw;
-
-}
-
-// ***************************************************************************
-// Helper function to check if the covariances have been set
-void samplePDFND::CheckCovariances() {
-// ***************************************************************************
-
-  // Check if we're doing smart processing
-  // This shouldn't happen because (to my knowledge) there is no such root file yet
-
-  if (XsecCov == NULL) {
-    std::cerr << "XsecCov covariance not set, can't setup samplePDFND in " << __FILE__ << ":" << __LINE__ << std::endl;
-    throw;
-  }
-
-  if (NDDetCov == NULL) {
-    std::cerr << "detector covariance not set, can't setup samplePDFND in " << __FILE__ << ":" << __LINE__ << std::endl;
-    throw;
-  }
 
 }
 

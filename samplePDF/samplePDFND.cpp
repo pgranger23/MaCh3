@@ -77,16 +77,6 @@ samplePDFND::samplePDFND(manager *Manager) : samplePDFBase(Manager->GetPOT()) {
   // Get which splines should use a linear function
   linearsplines = FitManager->GetXsecLinearSpline();
 
-  InitExperimentSpecific();
-
-  // Then load the samples
-  LoadSamples();
-  
-  // Enable the mode histograms AFTER addSelection is called
-  if (FitManager->getPlotByMode()) EnableModeHistograms();
-
-
-
 #ifdef CUDA
 std::cout << "- Using ND GPU version " << std::endl;
   #ifdef DEBUG_DUMP
@@ -151,7 +141,6 @@ samplePDFND::~samplePDFND() {
    }
 #endif
    
-  delete rnd;
   delete samplepdfs;
   delete datapdfs;
 
@@ -174,23 +163,6 @@ samplePDFND::~samplePDFND() {
 #endif
 }
 
-// ***************************************************************************
-//KS: Each experiment uses some specyfic variables, make template function for it
-void samplePDFND::InitExperimentSpecific() {
-// ***************************************************************************
-  std::cerr<<"Function InitExperimentSpecific is experiment specific however core code uses it"<<std::endl;
-  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
-  throw;
-}
-
-// ***************************************************************************
-// Load up the samples and binning specified by the user
-void samplePDFND::LoadSamples() {
-// ***************************************************************************
-  std::cerr<<"Function LoadSamples is experiment specific however core code uses it"<<std::endl;
-  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
-  throw;
-} // end LoadSamples
 
 // ***************************************************************************
 // Set the datapdfs to the MC-pdfs and treat them as Asimov data
@@ -552,7 +524,6 @@ void samplePDFND::EnableModeHistograms() {
    }
 }
 
-
 // ***************************************************************************
 // Helper function to print rates for the samples with LLH
 void samplePDFND::printRates(bool dataonly) {
@@ -566,6 +537,8 @@ void samplePDFND::printRates(bool dataonly) {
    double sumData  = 0.0;
    double sumMC    = 0.0;
    double likelihood = 0.0;
+   //KS: Check make sure data and MC binning is the same
+   CheckBinningMatch();
    for (int i = 0; i < nSamples; i++) {
      std::string name = SampleName[i].c_str();
 
@@ -585,8 +558,6 @@ void samplePDFND::printRates(bool dataonly) {
        if(!dataonly) std::cout << std::setw(10) << NoOverflowIntegral((TH2Poly*)(getPDF(i))) << std::setw(10) << likelihood << std::setw(10) << "|" << std::endl;
        else std::cout << std::endl;
      }
-     //KS: Check make sure data and MC binning is the same
-     CheckBinningMatch();
    }
    if(!dataonly)
       likelihood = getLikelihood();
@@ -597,9 +568,6 @@ void samplePDFND::printRates(bool dataonly) {
    else
       std::cout << std::endl;
 }
-
-
-
 
 // ***************************************************************************
 // Reweight the Monte-Carlo at ND for one step of the Markov Chain
@@ -1957,38 +1925,6 @@ void samplePDFND::SetSplines_Reduced(TGraph** &xsecgraph, const int EventNumber)
 } // end function
 #endif
 
-// ***************************************************************************
-// Set up our experiment, loop over the events (data and MC), associate cross-section splines with events
-// Needs to have addSelection called!
-void samplePDFND::fillReweightingBins() {
-// ***************************************************************************
-
-  std::cout << "starting fillReweightingBins" <<  std::endl;
-  // Check that the covariances are filled
-  CheckCovariances();
-
-  FindAdditionalInfo();
-
-  FindNormBins();
-
-  FindNormPointer();
-
-  InitialisePDF();
-
-  //KS: Shrink memory to accepted number of events
-  NDEve.resize(nEvents);
-#ifndef DEBUG
-  //KS: We only needed this to set some varialbes but now we can delete it to save RAM, however do this in standard fit, in debug mode we might need thos varaibles for verbose
-  NDEve_Aux.clear();
-  std::cout << "Removing auxilary variables not needed during fit, relase " << nEvents*(sizeof(__float__)*2 + sizeof(__int__)*2 + sizeof(bool))/1.E6 << " MB of RAM" << std::endl;
-#endif
-
-  std::cerr<<"Function fillReweightingBins is experiment specific however core code uses it"<<std::endl;
-  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
-  throw;
-
-} // End fillReweightingBins() function
-
 
 // ***************************************************************************
 // Function to reserve memory for ND objects
@@ -2144,18 +2080,6 @@ void samplePDFND::FindNormPointer() {
       }
       NDEve[iEvent].xsec_norm_pointers =  Temp_norm_pointers;
      }
-}
-
-
-// ******************************************
-//KS:  Find Detector bin, hist bin and other useful information using multithreading
-void samplePDFND::FindAdditionalInfo() {
-// ******************************************
-
-  std::cerr<<"Function LoadSamples is experiment specific however core code uses it"<<std::endl;
-  std::cerr<<"Since you haven't implemented it I have to stop it"<<std::endl;
-  throw;
-
 }
 
 

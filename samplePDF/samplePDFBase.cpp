@@ -4,6 +4,7 @@
 samplePDFBase::samplePDFBase(double pot) 
 {
   nDims = 0;
+  // A nice random number to use at our leisure (seeded on TIME)
   rnd = new TRandom3(0);
   MCthrow = false;
   dathist = NULL;

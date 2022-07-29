@@ -78,9 +78,6 @@ class samplePDFND : public samplePDFBase {
       samplePDFND(manager *FitManager);
       ~samplePDFND();
 
-      //KS: Each experiment uses some specyfic variables, make template fucnion for it
-      virtual void InitExperimentSpecific();
-
       // The different covariance matrices to be associated with the samplePDF
       void setXsecCov(covarianceXsec * const xsec_cov);
 
@@ -133,10 +130,7 @@ class samplePDFND : public samplePDFBase {
       // Setup the binning for a given sample
       virtual void SetupBinning(int Selection, std::vector<double> &BinningX, std::vector<double> &BinningY);
 
-      void fillDataFromSamples();
-      void fillReweightingBins();
-
-      virtual void EnableModeHistograms();
+      virtual void fillReweightingBins() {};
 
       // Helper function to print rates for the samples with LLH
       void printRates(bool dataonly = false);
@@ -148,7 +142,7 @@ class samplePDFND : public samplePDFBase {
 
   protected:
       //KS: Find Detector bin, hist bin and other useful information using multithreading
-      virtual void FindAdditionalInfo();
+      virtual void FindAdditionalInfo(){};
       
       // Helper function to find normalisation bins for normalisation parameters that aren't simply a mode scaling
       // e.g. different normalisation parameters for carbon and oxygen, neutrino and anti-neutrino, etc
@@ -162,7 +156,8 @@ class samplePDFND : public samplePDFBase {
       // Prepare weights
       void PrepareWeights();
 
-      virtual void LoadSamples();
+      //KS: Load Samples you want to use during fit
+      virtual void LoadSamples(){};
 
       void SetSplines(TGraph** &xsecgraph, const int i);
 #if USE_SPLINE < USE_TF1
@@ -261,7 +256,8 @@ class samplePDFND : public samplePDFBase {
       // do we want mode MC pdf to be save
       bool modepdf;
       __int__ nModes;
-
+      void EnableModeHistograms();
+      
       // Struct containing the cross-section info
       XSecStruct<__SPLINE_TYPE__*>* xsecInfo;
 

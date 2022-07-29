@@ -260,7 +260,7 @@ double samplePDFBase::getLikelihood()
 }
 // ***************************************************************************
 //KS: So far only Poisson LLH, in future Barlow-Beeston and IceCube
-double getTestStatLLH(double data, double mc) {
+double samplePDFBase::getTestStatLLH(double data, double mc) {
 // ***************************************************************************
     double negLogL = 0;
     if(mc == 0) mc = 1E-8;

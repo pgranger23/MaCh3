@@ -35,7 +35,6 @@ class NDEVENT {
     __int__ mode;
     // One time weight to apply to event, e.g. NC1gamma
     __float__ weight;
-
 };
 
 

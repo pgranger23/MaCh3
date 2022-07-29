@@ -89,7 +89,7 @@ class samplePDFND : public samplePDFBase {
       void setAsimovFakeData(bool CustomReWeight = false);
       void setDataFromFile(std::string &FileName);
       void setAsimovFakeData_FromFile(std::string &FileName);
-      virtual void setAsimovFakeDataThrow();
+      virtual void setAsimovFakeDataThrow(){};
       void setAsimovFakeDataFluctuated(bool CustomReWeight = false);
 
       double getLikelihood();
@@ -101,6 +101,14 @@ class samplePDFND : public samplePDFBase {
       void reweight(double *oscpar);
       void reweight(double *oscpar, double *oscpar2) { reweight(oscpar); };
       
+      // DEPRECATED {
+      std::vector< std::vector<double> > generate2D(int index);
+      std::vector<double> generate(int index);
+      std::vector<double>* getDataSample() {return NULL;}
+      std::vector< std::vector <double> > generate2D(TH2Poly* pdf) {std::vector< std::vector <double> > null; return null;}
+      std::vector<double> generate() {std::vector<double> null; return null;}
+      void printPosteriors() {return;}
+      //}
       void addData(std::vector<double> &dat) {return;}
       void addData(std::vector< vector <double> > &dat) {return;}
       void addData(TH1D* binneddata){return;}
@@ -112,7 +120,7 @@ class samplePDFND : public samplePDFBase {
       void addData(TH2Poly* binneddata, int index);
 
       // Randomize the starting position
-      virtual void RandomStart();
+      virtual void RandomStart(){};
       
       // Getters for the event histograms
       TH1* getPDF(int Selection);
@@ -133,7 +141,7 @@ class samplePDFND : public samplePDFBase {
       // Helper function to print rates for the samples with LLH
       void printRates(bool dataonly = false);
       //KS: Helper function check if data and MC binning matches
-      virtual void CheckBinningMatch();
+      virtual void CheckBinningMatch(){};
 #ifdef CUDA
       void fillGPUSplines();
 #endif
@@ -161,7 +169,16 @@ class samplePDFND : public samplePDFBase {
       void SetSplines_Reduced(TGraph** &xsecgraph, const int i);
 #endif
       // Helper function to check if the covariances have been set
-      virtual void CheckCovariances();
+      virtual void CheckCovariances(){};
+
+      // DEPRECATED BUT NEEDED BECAUSE OF INHERITANCE, POOP
+      // PLEASE FIX IF YOU HAVE TIME
+      // {
+      double getCovLikelihood() {return 0.0;}
+      double getLikelihood_kernel(std::vector<double> &data) {return 0.0;}
+      void fill1DHist() {return;}
+      void fill2DHist() {return;}
+      // }
 
       // Perform the main reweight loop
 #ifdef MULTITHREAD
@@ -189,7 +206,7 @@ class samplePDFND : public samplePDFBase {
       // Calculate the norm weight for a given event
       double CalcXsecWeight_Norm(const int EventNumber);
       // Calculate the detector weight for a given event
-      virtual double CalcDetWeight(const int EventNumber);
+      virtual double CalcDetWeight(const int EventNumber){return 1.;};
       // Calculate the func weight for a given event
       virtual double CalcXsecWeight_Func(const int EventNumber){return 1.;};
       bool HaveIRandomStart; // Have I random started?

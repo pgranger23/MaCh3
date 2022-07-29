@@ -1414,7 +1414,7 @@ double samplePDFND::getTestStatLLH(double data, double mc, double w2) {
       std::cerr << "Negative square root in Barlow Beeston coefficient calculation!" << std::endl;
       std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
       throw;
-    }  
+    }
     // Solve for the positive beta
     double beta = (-1*temp+sqrt(temp2))/2.;
     newmc = mc*beta;

@@ -20,7 +20,7 @@ target_include_directories(SamplePDF PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 if (USE_PROB3)
   target_link_libraries(SamplePDF Splines Covariance Manager OscClass Prob3plusplus)
 else()
-  target_link_libraries(SamplePDF Splines Covariance Manager OscClass CUDAProb3Beam CUDAProb3Atmos)
+  target_link_libraries(SamplePDF Splines Covariance OscClass)
 endif()
 
 

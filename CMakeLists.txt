@@ -157,7 +157,7 @@ if(NOT TARGET MaCh3)
   add_library(MaCh3 INTERFACE)
   set_target_properties(MaCh3 PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}"
-      INTERFACE_LINK_LIBRARIES "MCMC;OscClass;SamplePDF;Covariance;Splines;ThrowParms;Manager"
+      INTERFACE_LINK_LIBRARIES "OscClass;MCMC;SamplePDF;Covariance;Splines;ThrowParms;Manager"
       EXPORT_NAME MaCh3
   )
   cmessage(STATUS "Added target MaCh3")

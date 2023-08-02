@@ -402,6 +402,16 @@ void covarianceXsec::scanParameters() {
   nFarFuncParams = 0;
 
   int norm_counter = -1;
+  std::unordered_map<int,int>KnownDetIDsMap({
+      {0,1},    //ND
+      {1,8},    //FD
+      {2,16},   //SK1Rmu
+      {3,32},   //Nova
+      {4,64},   //Atm SubGeV e-like
+      {5,128},  //Atm SubGeV mu-like 
+      {6,256},  //Atm MultiGeV e-like
+      {7,512},  //Atm MultiGeV mu-like
+	  });
 
   for (int i = 0; i < nPars; ++i) {
 
@@ -411,10 +421,10 @@ void covarianceXsec::scanParameters() {
     int DetIDCounter = 0;
     int ParamaDetID = GetXSecParamID(i,1);
     //DB Loop over all supported DetIDs to ensure Root/XML inputs are familiar
-    for (int iKnownDetID=0;iKnownDetID<MaCh3Utils::nKnownDetIDs;iKnownDetID++) {
-      if ((ParamaDetID & MaCh3Utils::KnownDetIDsMap[iKnownDetID]) == MaCh3Utils::KnownDetIDsMap[iKnownDetID]) {
+    for (int iKnownDetID=0;iKnownDetID<8;iKnownDetID++) {
+      if ((ParamaDetID & KnownDetIDsMap[iKnownDetID]) == KnownDetIDsMap[iKnownDetID]) {
 	isValidDetID = true;
-	DetIDCounter += MaCh3Utils::KnownDetIDsMap[iKnownDetID];
+	DetIDCounter += KnownDetIDsMap[iKnownDetID];
       }
     }
     //DB Throw if Param DetID is unsupported. Also check that only supported DetIDs are contained in the param DetID

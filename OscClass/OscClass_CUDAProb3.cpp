@@ -1,43 +1,43 @@
 #include "OscClass_CUDAProb3.h"
 
-#define DEBUG=1
+// #define DEBUG=0
 
 Oscillator::Oscillator(std::string ConfigName) {
-  std::cout << std::setprecision(10);
+  // std::cout << std::setprecision(10);
 
-  std::vector<FLOAT_T> cosineList;
-  cosineList.push_back(-0.99895);
+  // std::vector<FLOAT_T> cosineList;
+  // cosineList.push_back(-0.99895);
 
-  std::vector<FLOAT_T> energyList;
-  energyList.push_back(0.0035);
+  // std::vector<FLOAT_T> energyList;
+  // energyList.push_back(0.0035);
 
-  int n_cosines = 1;
-  int n_energies = 1;
+  // int n_cosines = 1;
+  // int n_energies = 1;
 
-  int nu_flav = -1;
+  // int nu_flav = -1;
 
-  const FLOAT_T theta12 = 0.5695951908800630486710466089860865317151404697548723;
-  const FLOAT_T theta13 = 0.1608752771983210967007023071793306595103776477788280;
-  const FLOAT_T theta23 = 0.7853981633974483096156608458198757210492923498437764;
-  const FLOAT_T dcp     = 0.0;
+  // const FLOAT_T theta12 = 0.5695951908800630486710466089860865317151404697548723;
+  // const FLOAT_T theta13 = 0.1608752771983210967007023071793306595103776477788280;
+  // const FLOAT_T theta23 = 0.7853981633974483096156608458198757210492923498437764;
+  // const FLOAT_T dcp     = 0.0;
 
-  const FLOAT_T dm12sq = 7.9e-5;
-  const FLOAT_T dm23sq = 2.5e-3;
+  // const FLOAT_T dm12sq = 7.9e-5;
+  // const FLOAT_T dm23sq = 2.5e-3;
 
-  int n_threads = 1;
-  AtmosCpuPropagator<FLOAT_T> *mypropagator;
-  mypropagator = new AtmosCpuPropagator<FLOAT_T>(n_cosines, n_energies, n_threads); // cpu propagator with 4 threads
+  // int n_threads = 1;
+  // cudaprob3::AtmosCpuPropagator<FLOAT_T> *mypropagator;
+  // mypropagator = new cudaprob3::AtmosCpuPropagator<FLOAT_T>(n_cosines, n_energies, n_threads); // cpu propagator with 4 threads
 
-  mypropagator->setEnergyList(energyList);
-  mypropagator->setCosineList(cosineList);
-  mypropagator->setDensityFromFile("/dune/app/users/barrowd/CUDAProb3/MaCh3_DUNE/build/_deps/cudaprob3-src/models/PREM_4layer.dat");
-  mypropagator->setMNSMatrix(theta12, theta13, theta23, dcp, nu_flav);
-  mypropagator->setNeutrinoMasses(dm12sq, dm23sq);
-  mypropagator->setProductionHeight(22.0);
-  mypropagator->calculateProbabilities(cudaprob3::Antineutrino);
-  std::cout << mypropagator->getProbability(0,0, ProbType::e_e) << std::endl;
+  // mypropagator->setEnergyList(energyList);
+  // mypropagator->setCosineList(cosineList);
+  // mypropagator->setDensityFromFile("/home/pgranger/atmospherics/debug/MaCh3_DUNE/build/_deps/cudaprob3-src/models/PREM_4layer.dat");
+  // mypropagator->setMNSMatrix(theta12, theta13, theta23, dcp, nu_flav);
+  // mypropagator->setNeutrinoMasses(dm12sq, dm23sq);
+  // mypropagator->setProductionHeight(22.0);
+  // mypropagator->calculateProbabilities(cudaprob3::Antineutrino);
+  // std::cout << mypropagator->getProbability(0,0, cudaprob3::ProbType::e_e) << std::endl;
 
-  throw;
+  // throw;
 
   //####################################################################################
   //Set definite values
@@ -59,6 +59,7 @@ Oscillator::Oscillator(std::string ConfigName) {
   EarthDensityFile = osc_manager->raw()["OscillatorObj"]["OscillatorEarthDensityFile"].as<std::string>();
   ArrayConfig = osc_manager->raw()["OscillatorObj"]["OscillatorArrayConfig"].as<int>();
   fFillHistograms = osc_manager->raw()["OscillatorObj"]["OscillatorFillHistograms"].as<bool>();
+  fFillHistograms = true;
 
   IsLinear = osc_manager->raw()["OscillatorObj"]["OscillatorIsLinear"].as<bool>();
   useFineBinsPerBin = osc_manager->raw()["OscillatorObj"]["OscillatorUseFineBinsPerCoarseBin"].as<bool>();
@@ -941,9 +942,11 @@ void Oscillator::SaveParams(double* oscpar, double prodH, double Yp_Val) {
 }
 
 void  Oscillator::FillOscillogram(double* oscpar, double prodH, double Yp_Val) {
-  if (isAlreadyCalculated(oscpar,prodH,Yp_Val)) {
-    return;
-  }
+  // std::cout << oscpar[1] << " " << oscpar[5] << std::endl;
+  // if (isAlreadyCalculated(oscpar,prodH,Yp_Val)) {
+  //   std::cout << "Already calculated" << std::endl;
+  //   return;
+  // }
 
   SaveParams(oscpar,prodH,Yp_Val);
 
@@ -986,10 +989,10 @@ void  Oscillator::FillOscillogram(double* oscpar, double prodH, double Yp_Val) {
   }
   */
 
-  //propagator->setNeutrinoMasses(dm12sq, dm23sq);
-  propagator->setNeutrinoMasses(7.9e-5,2.5e-3);
-  //propagator->setProductionHeight(prodH);
-  propagator->setProductionHeight(22.0);
+  propagator->setNeutrinoMasses(dm12sq, dm23sq);
+  // propagator->setNeutrinoMasses(7.9e-5,2.5e-3);
+  propagator->setProductionHeight(prodH);
+  // propagator->setProductionHeight(22.0);
 
   for (int i=0;i<nNeutrinoSigns;i++) {
 
@@ -1009,9 +1012,9 @@ void  Oscillator::FillOscillogram(double* oscpar, double prodH, double Yp_Val) {
     for (int j=0;j<nInitialFlavours;j++) {
       for (int k=0;k<nFinalFlavours;k++) {
 
-	FLOAT_T prob = propagator->getProbability(0,0,ProbType::e_e);
+	FLOAT_T prob = propagator->getProbability(0,0,cudaprob3::ProbType::e_e);
 	std::cout << prob << std::endl;
-	throw;
+	// throw;
 
 #ifdef DEBUG
 	//DB This part could be replaced with pointers
@@ -1019,6 +1022,7 @@ void  Oscillator::FillOscillogram(double* oscpar, double prodH, double Yp_Val) {
 	  int yBin = int(iter%nSecondaryBinsY);
 	  int xBin = int(iter/nSecondaryBinsY);
 	  FLOAT_T prob = propagator->getProbability(yBin,xBin,OscChannels[j][k]);
+    std::cerr << "prob: " << prob << std::endl;
 	  if (std::isnan(prob)) {
 	    std::cerr << "Prob is NAN!" << std::endl;
 	    std::cerr << "In Flav:" << j << std::endl;
@@ -1055,7 +1059,7 @@ void  Oscillator::FillOscillogram(double* oscpar, double prodH, double Yp_Val) {
 	  int yBin = int(iter%nSecondaryBinsY);
 	  int xBin = int(iter/nSecondaryBinsY);
 	  ProbList[iter] = propagator->getProbability(yBin,xBin,OscChannels[j][k]);
-	  std::cout << "xBin:" << xBin << " | yBin:" << yBin << " | iter:" << iter << " | ProbList[iter]:" << ProbList[iter] << std::endl;
+	  // std::cout << "xBin:" << xBin << " | yBin:" << yBin << " | iter:" << iter << " | ProbList[iter]:" << ProbList[iter] << std::endl;
 	}
 #endif
         // Sometimes CUDAProb3 can return *slightly* unphysical oscillation probabilities
@@ -1079,9 +1083,9 @@ void  Oscillator::FillOscillogram(double* oscpar, double prodH, double Yp_Val) {
 void Oscillator::FillPrimaryOscillogram(int NeutrinoSignIndex, int InitialNeutrinoIndex, int FinalNeutrinoIndex) {
   int iPrimaryHist = NeutrinoSignIndex*(nInitialFlavours*nFinalFlavours)+InitialNeutrinoIndex*nFinalFlavours+FinalNeutrinoIndex;
 
-#ifdef MULTITHREAD
-#pragma omp for
-#endif
+// #ifdef MULTITHREAD
+// #pragma omp for
+// #endif
   for (int iPrimaryBin=0;iPrimaryBin<nPrimaryBins;iPrimaryBin++) {
     unsigned int nContribs = PrimaryBinContrib_Bin[iPrimaryBin].size();
 
@@ -1313,34 +1317,34 @@ void Oscillator::InitPropagator() {
   int nEnergy = nSecondaryBinsX;
   int nCosine = nSecondaryBinsY;
 
-  /*
-#ifdef USE_GPU
-  propagator = std::unique_ptr<AtmosCpuPropagator<FLOAT_T>> ( new AtmosCudaPropagatorSingle<FLOAT_T>(0,nCosine, nEnergy)); // Single-GPU propagator
-#else
-  int nThreads = 1;
-  #pragma omp parallel
-  {
-#pragma omp single
-    nThreads = omp_get_num_threads();
-  }
+// #ifdef USE_GPU
+//   propagator = std::unique_ptr<AtmosCpuPropagator<FLOAT_T>> ( new AtmosCudaPropagatorSingle<FLOAT_T>(0,nCosine, nEnergy)); // Single-GPU propagator
+// #else
+//   int nThreads = 1;
+//   #pragma omp parallel
+//   {
+// #pragma omp single
+//     nThreads = omp_get_num_threads();
+//   }
 
-  propagator = std::unique_ptr<AtmosCpuPropagator<FLOAT_T>> ( new AtmosCpuPropagator<FLOAT_T>(nCosine, nEnergy, nThreads)); // MultiThread CPU propagator
-#endif
+  int nThreads = 1;
+
+  propagator = std::unique_ptr<cudaprob3::AtmosCpuPropagator<FLOAT_T>> ( new cudaprob3::AtmosCpuPropagator<FLOAT_T>(nCosine, nEnergy, nThreads)); // MultiThread CPU propagator
+// #endif
 
   propagator->setEnergyList(SecondaryXBinEvalPoints);
   propagator->setCosineList(SecondaryYBinEvalPoints);
-  */
 
-  int nThreads = 1;
-  propagator = std::unique_ptr<AtmosCpuPropagator<FLOAT_T>> ( new AtmosCpuPropagator<FLOAT_T>(1, 1, nThreads));
+  // int nThreads = 1;
+  // propagator = std::unique_ptr<cudaprob3::AtmosCpuPropagator<FLOAT_T>> ( new cudaprob3::AtmosCpuPropagator<FLOAT_T>(1, 1, nThreads));
 
-  std::vector<FLOAT_T> Energy;
-  Energy.push_back(0.0035);
-  propagator->setEnergyList(Energy);
+  // std::vector<FLOAT_T> Energy;
+  // Energy.push_back(0.0035);
+  // propagator->setEnergyList(Energy);
 
-  std::vector<FLOAT_T> Cosine;
-  Cosine.push_back(-0.99895);
-  propagator->setCosineList(Cosine);
+  // std::vector<FLOAT_T> Cosine;
+  // Cosine.push_back(-0.99895);
+  // propagator->setCosineList(Cosine);
 
   CheckEarthDensityFile();
   std::cout << "Loading Earth density from: " << EarthDensityFile << std::endl;

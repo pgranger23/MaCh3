@@ -188,13 +188,20 @@ void samplePDFFDBase::calcOscWeights(int sample, int nutype, double *w, double *
 
 void samplePDFFDBase::reweight(double *oscpar) // Reweight function - Depending on Osc Calculator this function uses different CalcOsc functions
 {
-
+  // ofstream of("dump.txt", ios::app);
   if (Osc) {
+    std::cout << "HERE" << std::endl;
     //DB Currently hardcoded to assume rho_electrons = rho_matter/2, 25km production height
     Osc->FillOscillogram(oscpar,25.0,0.5);
     for (unsigned int iSample=0;iSample<MCSamples.size();iSample++) {
       for (int iEvent=0;iEvent<MCSamples[iSample].nEvents;iEvent++) {
-	MCSamples[iSample].osc_w[iEvent] = *(MCSamples[iSample].osc_w_pointer[iEvent]);
+	      MCSamples[iSample].osc_w[iEvent] = *(MCSamples[iSample].osc_w_pointer[iEvent]);
+        // of << MCSamples[iSample].nutype << " "
+        //    << MCSamples[iSample].oscnutype << " "
+        //    << *(MCSamples[iSample].rw_etru[iEvent]) << " "
+        //    << MCSamples[iSample].rw_truecz[iEvent] << " "
+        //    << MCSamples[iSample].osc_w[iEvent] << std::endl;
+  // std::cout << "Event " << iEvent << " -> " << MCSamples[iSample].osc_w[iEvent] << std::endl;
       }
     }
   } else {
@@ -266,7 +273,9 @@ void samplePDFFDBase::fillArray() {
 
 	  if (!IsEventSelected(SelectionStr, iSample, iEvent)) { 
 		continue;
-	  } 
+	  }
+
+    // std::cout << "Event " << iEvent << " is selected" << std::endl;
 
 
 #if USEBETA == 1
@@ -302,6 +311,7 @@ void samplePDFFDBase::fillArray() {
 	  }
 
       MCSamples[iSample].xsec_w[iEvent] = splineweight*normweight*funcweight;
+      // std::cout << "Xsec weight: " << MCSamples[iSample].xsec_w[iEvent] << std::endl;
       
       //DB Set oscillation weights for NC events to 1.0
       //DB Another speedup - Why bother storing NC signal events and calculating the oscillation weights when we just throw them out anyway? Therefore they are skipped in setupMC
@@ -316,10 +326,15 @@ void samplePDFFDBase::fillArray() {
 	  	continue;
       }
 
+      // std::cout << "Osc weight: " << MCSamples[iSample].osc_w[iEvent] << std::endl;
+
       //DB Total weight
       for (int iParam=0; iParam<MCSamples[iSample].ntotal_weight_pointers[iEvent] ; ++iParam) {
 		totalweight *= *(MCSamples[iSample].total_weight_pointers[iEvent][iParam]);
+        // std::cout << iParam << " " << *(MCSamples[iSample].total_weight_pointers[iEvent][iParam]) << std::endl;
       }
+      // std::cout << "Total weight: " << totalweight << std::endl;
+      // std::cout << "rw_berpaacvwgt: " << *(MCSamples[iSample].total_weight_pointers[iEvent][3]) << std::endl;
       //DB Catch negative weights and skip any event with a negative event
       if (totalweight <= 0.){
 		MCSamples[iSample].xsec_w[iEvent] = 0.;
@@ -657,6 +672,7 @@ void samplePDFFDBase::SetOscillator(Oscillator* Osc_) {
 }
 
 void samplePDFFDBase::FindEventOscBin() {
+  std::cout << "getNMCSamples() -> " << getNMCSamples() << std::endl;
   for(int i = 0; i < getNMCSamples(); i++) {
     for (int j = 0;j < getNEventsInSample(i); j++) {
       MCSamples[i].osc_w_pointer[j] = Osc->retPointer(MCSamples[i].nutype,MCSamples[i].oscnutype,*(MCSamples[i].rw_etru[j]),MCSamples[i].rw_truecz[j]);
@@ -1396,6 +1412,7 @@ double samplePDFFDBase::GetLikelihood()
         double DataVal = samplePDFFD_data[yBin][xBin];
         double MCPred = samplePDFFD_array[yBin][xBin];
         double w2 = samplePDFFD_array_w2[yBin][xBin];
+        // std::cout << DataVal << " " << MCPred << " " << w2 << std::endl;
         //KS: Calcaualte likelihood using Barlow-Beestion Poisson or even IceCube
         negLogL += getTestStatLLH(DataVal, MCPred, w2);
 

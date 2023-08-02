@@ -23,8 +23,8 @@
 #endif
 
 using FLOAT_T = double;
-//using FLOAT_T = float;
-using namespace cudaprob3; // namespace of the propagators
+// using FLOAT_T = float;
+// using namespace cudaprob3; // namespace of the propagators
 
 struct Corner{
   double x;
@@ -142,7 +142,7 @@ class Oscillator {
   TString EarthDensityFile;
   TString ProductionHeightFileName;
 
-  std::unique_ptr<AtmosCpuPropagator<FLOAT_T>> propagator;
+  std::unique_ptr<cudaprob3::AtmosCpuPropagator<FLOAT_T>> propagator;
 
   unsigned int nPrimaryHists;
   double** hPrimaryOscillogram_Arr;
@@ -170,11 +170,11 @@ class Oscillator {
   std::vector<FLOAT_T> SecondaryXBinEvalPoints;
   std::vector<FLOAT_T> SecondaryYBinEvalPoints;
 
-  std::vector<NeutrinoType> NeutrinoTypes;
+  std::vector<cudaprob3::NeutrinoType> NeutrinoTypes;
   std::vector<TString> NeutrinoTypes_Names;
 
   std::vector< std::vector<TString> > OscChannels_Names;
-  std::vector< std::vector<ProbType> > OscChannels;
+  std::vector< std::vector<cudaprob3::ProbType> > OscChannels;
 
   int nSecondaryBins;
   int nPrimaryBins;

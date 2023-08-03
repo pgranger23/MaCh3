@@ -190,12 +190,14 @@ void samplePDFFDBase::reweight(double *oscpar) // Reweight function - Depending 
 {
   // ofstream of("dump.txt", ios::app);
   if (Osc) {
-    std::cout << "HERE" << std::endl;
     //DB Currently hardcoded to assume rho_electrons = rho_matter/2, 25km production height
     Osc->FillOscillogram(oscpar,25.0,0.5);
     for (unsigned int iSample=0;iSample<MCSamples.size();iSample++) {
       for (int iEvent=0;iEvent<MCSamples[iSample].nEvents;iEvent++) {
 	      MCSamples[iSample].osc_w[iEvent] = *(MCSamples[iSample].osc_w_pointer[iEvent]);
+        if(iSample == 0 && iEvent == 0){
+          std::cout << MCSamples[iSample].osc_w_pointer[iEvent] << " -> " << *(MCSamples[iSample].osc_w_pointer[iEvent]) << std::endl;
+        }
         // of << MCSamples[iSample].nutype << " "
         //    << MCSamples[iSample].oscnutype << " "
         //    << *(MCSamples[iSample].rw_etru[iEvent]) << " "
@@ -1250,8 +1252,10 @@ void samplePDFFDBase::addData(TH1D* Data) {
     samplePDFFD_data[yBin] = new double[nXBins];
     for (int xBin=0;xBin<nXBins;xBin++) {
       samplePDFFD_data[yBin][xBin] = Data->GetBinContent(xBin+1);
+      // std::cout << "Filling: " << samplePDFFD_data[yBin][xBin] << std::endl;
     }
   }
+  // throw;
 }
 
 void samplePDFFDBase::addData(TH2D* Data) {

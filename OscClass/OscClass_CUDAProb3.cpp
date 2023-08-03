@@ -948,6 +948,8 @@ void  Oscillator::FillOscillogram(double* oscpar, double prodH, double Yp_Val) {
   //   return;
   // }
 
+  // std::cout << oscpar[0] << " " << oscpar[1] << " " << oscpar[2] << " " << oscpar[3] << " " << oscpar[4] << " " << oscpar[5] << std::endl;
+
   SaveParams(oscpar,prodH,Yp_Val);
 
   //DB oscpar, as given from MaCh3, expresses the mixing angles in sin^2(theta). The propagator expects them in theta
@@ -1001,9 +1003,9 @@ void  Oscillator::FillOscillogram(double* oscpar, double prodH, double Yp_Val) {
       // Copying that behaviour gives same behaviour as prob3++/probGPU
 
       //DB Liban has now implemented a check to deal with the -1 factor inside CUDAProb3::setMNS
-      propagator->setMNSMatrix(0.5695951908800630486710466089860865317151404697548723, 0.1608752771983210967007023071793306595103776477788280, 0.7853981633974483096156608458198757210492923498437764, 0., -1);
+      propagator->setMNSMatrix(theta12, theta13, theta23, dcp, -1);
     } else {
-      propagator->setMNSMatrix(0.5695951908800630486710466089860865317151404697548723, 0.1608752771983210967007023071793306595103776477788280, 0.7853981633974483096156608458198757210492923498437764, 0., 1);
+      propagator->setMNSMatrix(theta12, theta13, theta23, dcp, 1);
     }
 
 
@@ -1012,8 +1014,8 @@ void  Oscillator::FillOscillogram(double* oscpar, double prodH, double Yp_Val) {
     for (int j=0;j<nInitialFlavours;j++) {
       for (int k=0;k<nFinalFlavours;k++) {
 
-	FLOAT_T prob = propagator->getProbability(0,0,cudaprob3::ProbType::e_e);
-	std::cout << prob << std::endl;
+	// FLOAT_T prob = propagator->getProbability(0,0,cudaprob3::ProbType::e_e);
+	// std::cout << prob << std::endl;
 	// throw;
 
 #ifdef DEBUG

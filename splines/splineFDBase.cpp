@@ -138,7 +138,7 @@ void splineFDBase::SetSplineBinning(int opt_binning) // enu-var1-var2 version
   if((netrue <= 1 || nvar1 <= 1 || nvar2 <= 1)){
 	std::cerr << "[ERROR]: " << __FILE__ << ":" << __LINE__ << " You're Setting up a 2D spline but one of the axes has only one bin or less..." << std::endl;
 	std::cerr << "netrue is " << netrue << std::endl;
-	std::cerr << "nvar1 is " << nvar1 << std::endl;
+	std::cerr << "nvar1 is " << nvar1 << " range: " << var2_range[0] << " -> " << var2_range[1] << std::endl;
 	std::cerr << "nvar2 is " << nvar2 << std::endl;
 	std::cerr << "I think you've Set up the wrong spline! Maybe you've used 1D splines by mistake?! " << std::endl;
     throw;	

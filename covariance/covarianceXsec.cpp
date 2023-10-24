@@ -38,6 +38,7 @@ covarianceXsec::covarianceXsec(const char *name, const char *file,
   if(!(xsec_kinematic_type = (TObjArray*)(infile->Get("xsec_norm_kinematic_type")))){xsec_kinematic_type = new TObjArray();}
   if(!(xsec_param_nd_spline_names = (TObjArray*)(infile->Get("nd_spline_names")))){xsec_param_nd_spline_names= new TObjArray();}
 
+  if(!(xsec_spline_interpolation = (TObjArray*)(infile->Get("xsec_spline_interpolation")))){xsec_spline_interpolation = NULL;}
 
   // Check that the size of all the arrays are good
   if (xsec_param_norm_modes->GetEntries() != xsec_param_norm_elem->GetEntries() || 

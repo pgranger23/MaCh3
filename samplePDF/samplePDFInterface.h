@@ -40,9 +40,6 @@ class samplePDFInterface
   virtual double GetLikelihood_kernel(std::vector<double> &data)=0;
   virtual void fill1DHist()=0;
   virtual void fill2DHist()=0;
-
-//  virtual TH1D *nominalSpectrum1D=0;
-//  virtual TH2D *nominalSpectrum2D=0;
 };
 
 #endif

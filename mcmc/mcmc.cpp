@@ -17,8 +17,8 @@ mcmc::mcmc(manager * const man) : fitMan(man) {
     anneal = true;
   }
   // Fit summary and debug info
-  debug =  fitMan->raw()["MCMC"]["Debug"].as<bool>();
-  init(fitMan->raw()["General"]["Output"]["FileName"].as<std::string>().c_str());
+  debug =  fitMan->raw()["General"]["Debug"].as<bool>();
+  init(fitMan->raw()["General"]["OutputFile"].as<std::string>().c_str());
 
 }
 
@@ -32,7 +32,7 @@ void mcmc::init(std::string outfile) {
   // Counter of the accepted # of steps
   accCount = 0;
   //KS: you don't want to do this too often https://root.cern/root/html606/TTree_8cxx_source.html#l01229
-  auto_save = fitMan->raw()["MCMC"]["AutoSave"].as<int>();//GetAutoSave();
+  auto_save = fitMan->raw()["General"]["MCMC"]["AutoSave"].as<int>();//GetAutoSave();
   // Do we want to save the nominal parameters to output
   save_nominal = true;
   // Starting parameters should be thrown 
@@ -561,7 +561,7 @@ void mcmc::ProposeStep() {
     for (size_t i = 0; i < samples.size(); i++) {
 
       // If we're running with different oscillation parameters for neutrino and anti-neutrino
-      if (osc) {
+      if (osc ){ 
         samples[i]->reweight(osc->getPropPars());
         // If we aren't using any oscillation
       } else {

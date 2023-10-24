@@ -23,7 +23,6 @@ else()
   target_link_libraries(SamplePDF Splines Covariance OscClass)
 endif()
 
-
 if(NOT ${CPU_ONLY})
   add_library(probGpu probGpu.cu)
   set_target_properties(SamplePDF PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
@@ -40,5 +39,3 @@ install(TARGETS SamplePDF
     EXPORT MaCh3-target
     LIBRARY DESTINATION lib/
     PUBLIC_HEADER DESTINATION include/samplePDF)
-
-

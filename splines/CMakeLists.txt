@@ -26,15 +26,14 @@ if(NOT ${CPU_ONLY})
 	target_compile_options(Splines PUBLIC -DCUDA_ERROR_CHECK)
   endif()
   set_property(TARGET gpuSpline Splines PROPERTY CUDA_ARCHITECTURES 35 52 60 61 70 75 80 86)
-  target_link_libraries(Splines ThrowParms gpuSpline)
+  target_link_libraries(gpuSpline)
 
 else()
-
   add_library(Splines SHARED ${Splines_implementation_files_CPU})
-  target_include_directories(Splines PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-  target_link_libraries(Splines ThrowParms)
-
+  target_include_directories(Splines INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 endif()
+
+target_link_libraries(Splines Covariance)
 
 set_target_properties(Splines PROPERTIES 
   PUBLIC_HEADER "${Splines_header_files}"

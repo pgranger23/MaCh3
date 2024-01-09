@@ -27,8 +27,8 @@ find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PA
 
 LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/Modules)
 
-#include(CPM)
-include(${CPM_DOWNLOAD_LOCATION})
+include(CPM)
+# include(${CPM_DOWNLOAD_LOCATION})
 
 #Luke's handing cmake modules which Neutrino hep experiments might want
 CPMFindPackage(

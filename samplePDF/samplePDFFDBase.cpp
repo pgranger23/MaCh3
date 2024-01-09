@@ -1391,11 +1391,11 @@ void samplePDFFDBase::fillSplineBins() {
 	  switch (BinningOpt) {
 		case 0: // splines binned in erec
 		case 1:
-		  EventSplines = splineFile->GetEventSplines(GetSampleName(), i, *(MCSamples[i].mode[j]), *(MCSamples[i].rw_etru[j]), *(MCSamples[i].x_var[j]), 0.);
+		  EventSplines = MCSamples[i].splineFile->GetEventSplines(GetSampleName(), i, *(MCSamples[i].mode[j]), *(MCSamples[i].rw_etru[j]), *(MCSamples[i].x_var[j]), 0.);
 		  break;
 		case 2:
 		  //Straight out of SKBase
-		  EventSplines = splineFile->GetEventSplines(GetSampleName(), i, *(MCSamples[i].mode[j]), *(MCSamples[i].rw_etru[j]), *(MCSamples[i].x_var[j]), *(MCSamples[i].y_var[j]));
+		  EventSplines = MCSamples[i].splineFile->GetEventSplines(GetSampleName(), i, *(MCSamples[i].mode[j]), *(MCSamples[i].rw_etru[j]), *(MCSamples[i].x_var[j]), *(MCSamples[i].y_var[j]));
 
 		  //FD base
 		  //EventSplines = MCSamples[i].splineFile->GetEventSplines(SampleName, j, *(MCSamples[i].mode[j]), MCSamples[i].enu_s_bin[j], MCSamples[i].xvar_s_bin[j], MCSamples[i].yvar_s_bin[j]); 

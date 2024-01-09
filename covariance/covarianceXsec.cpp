@@ -1,14 +1,11 @@
 #include "covarianceXsec.h"
 
 // ********************************************
-covarianceXsec::covarianceXsec(const char *name, const char *file,
-   	                           double threshold,int FirstPCAdpar,
-							   int LastPCAdpar)
-  : covarianceBase(name, file,0,threshold,FirstPCAdpar,LastPCAdpar) {
+covarianceXsec::covarianceXsec(const char *name, const char *file, double threshold,int firstpcapar,int lastpcapar)
+  : covarianceBase(name, file,0,threshold,firstpcapar,lastpcapar) {
 // ********************************************
 
-  /*
-   * ETA - this is all redundent now
+  MakePosDef();
   TFile *infile = new TFile(file, "READ");
 
   xsec_param_norm_modes = NULL;
@@ -17,19 +14,13 @@ covarianceXsec::covarianceXsec(const char *name, const char *file,
   xsec_param_norm_nupdg = NULL;
 
   // Now to the special objects that only 2016a and above have
-  if(!(xsec_param_norm_modes = (TObjArray*)(infile->Get("xsec_norm_modes")))){
-	std::cerr<<"Can't find xec_norm_modes in xseccov"<<std::endl;
-	throw;
-  }
-  if(!(xsec_param_norm_horncurrents = (TObjArray*)(infile->Get("xsec_norm_horncurrents")))){
-	std::cerr<<"Can't find xec_norm_horncurrents in xseccov"<<std::endl;
-	throw;
-  }
+  if(!(xsec_param_norm_modes = (TObjArray*)(infile->Get("xsec_norm_modes")))){std::cerr<<"Can't find xec_norm_modes in xseccov"<<std::endl;throw;}
+  if(!(xsec_param_norm_horncurrents = (TObjArray*)(infile->Get("xsec_norm_horncurrents")))){std::cerr<<"Can't find xec_norm_horncurrents in xseccov"<<std::endl;throw;}
   if(!(xsec_param_norm_elem  = (TObjArray*)(infile->Get("xsec_norm_elements")))){std::cerr<<"Can't find xec_norm_elements in xseccov"<<std::endl;throw;}
   if(!(xsec_param_norm_nupdg = (TObjArray*)(infile->Get("xsec_norm_nupdg")))){std::cerr<<"Can't find xec_norm_nupdg in xseccov"<<std::endl;throw;}
   if(!(xsec_param_norm_preoscnupdg = (TObjArray*)(infile->Get("xsec_norm_prod_nupdg")))){std::cerr<<"Can't find xec_norm_prod_nupdg in xseccov"<<std::endl;throw;}
   //ETA - adding in string which will then be parsed in samplePDF class into a kinematic variable to cut on
-  //LW - Changing to if no kinematic type, make empty array
+  //LW - Chaning to if no kinematic type, make empty array
   //if(!(xsec_kinematic_type = (TObjArray*)(infile->Get("xsec_norm_kinematic_type")))){std::cerr<< "[ERROR]::" << __FILE__ << ":" << __LINE__ << " cannot find xsec_kinematic_type in xseccov" << std::endl; throw;}
   if(!(xsec_param_fd_spline_modes = (TObjArray*)(infile->Get("fd_spline_modes")))){std::cerr<<"Can't find fd_spline_modes in xseccov"<<std::endl;throw;}
   if(!(xsec_param_fd_spline_names = (TObjArray*)(infile->Get("fd_spline_names")))){std::cerr<<"Can't find fd_spline_names in xseccov"<<std::endl;throw;}
@@ -38,14 +29,13 @@ covarianceXsec::covarianceXsec(const char *name, const char *file,
   if(!(xsec_kinematic_type = (TObjArray*)(infile->Get("xsec_norm_kinematic_type")))){xsec_kinematic_type = new TObjArray();}
   if(!(xsec_param_nd_spline_names = (TObjArray*)(infile->Get("nd_spline_names")))){xsec_param_nd_spline_names= new TObjArray();}
 
-  if(!(xsec_spline_interpolation = (TObjArray*)(infile->Get("xsec_spline_interpolation")))){xsec_spline_interpolation = NULL;}
 
   // Check that the size of all the arrays are good
   if (xsec_param_norm_modes->GetEntries() != xsec_param_norm_elem->GetEntries() || 
       xsec_param_norm_modes->GetEntries() != xsec_param_norm_nupdg->GetEntries() ||
       xsec_param_norm_modes->GetEntries() != xsec_param_norm_horncurrents->GetEntries() ||
-      xsec_param_norm_modes->GetEntries() != xsec_param_norm_preoscnupdg->GetEntries() *//* ||
-	   xsec_param_norm_modes->GetEntries() != xsec_kinematic_type->GetEntries() *//* ){	
+      xsec_param_norm_modes->GetEntries() != xsec_param_norm_preoscnupdg->GetEntries() /* ||
+	   xsec_param_norm_modes->GetEntries() != xsec_kinematic_type->GetEntries() */ ){	
     std::cerr << "Number of entries in input matrix normalisation parameters is wrong!" << std::endl;
     std::cerr << "Element GetEntries =    " << xsec_param_norm_elem->GetEntries() << std::endl;
     std::cerr << "Modes GetEntries =      " << xsec_param_norm_modes->GetEntries() << std::endl;
@@ -56,10 +46,6 @@ covarianceXsec::covarianceXsec(const char *name, const char *file,
     throw;
   }
 
-  //ETA- don't need this explicit difference.
-  // I think we just keep one vector for the spline modes. This could get a bit
-  // weird in the case that there are different modes across systs that you
-  // want to correlate. But I think this will be fine.
   if(xsec_param_fd_spline_modes->GetEntries() != xsec_param_fd_spline_names->GetEntries() ){
     std::cerr <<"Number of entries in input matrix fd spline parameters is wrong!"<<std::endl;
     std::cerr <<"Far spline modes GetEntries = "<<xsec_param_fd_spline_modes->GetEntries()<<std::endl;
@@ -74,7 +60,6 @@ covarianceXsec::covarianceXsec(const char *name, const char *file,
   xsec_param_lb     = (TVectorD*)(infile->Get("xsec_param_lb"));
   xsec_param_ub     = (TVectorD*)(infile->Get("xsec_param_ub"));
   xsec_stepscale    = (TVectorD*)(infile->Get("xsec_stepscale"));
-  TVectorD* flat_prior = (TVectorD*)(infile->Get("xsec_flat_prior"));
   xsec_kinematic_ub = (TVectorD*)(infile->Get("xsec_norm_kinematic_ub"));
   xsec_kinematic_lb = (TVectorD*)(infile->Get("xsec_norm_kinematic_lb"));
   TObjArray* objarr_name = (TObjArray*)(infile->Get("xsec_param_names"));
@@ -90,14 +75,10 @@ covarianceXsec::covarianceXsec(const char *name, const char *file,
     std::cerr << __FILE__ << ":" << __LINE__ << std::endl;
     throw;
   }
-  */
 
-  int ncols = _fNumPar;
-  //ParseYAML(name);
-
-  nPars = _fNumPar;
   // Leave these as arrays for backwards compatibility
   // Probably should be made into vectors but at least size isn't hard-coded ^,^
+
   // Load up the parameters id (nPars x nCols big, contains information about if these parameters are spline, normalisation or some other parameter)
   xsec_param_id_a   = new int*[nPars];
   for (int i = 0; i < nPars; ++i) {
@@ -112,42 +93,38 @@ covarianceXsec::covarianceXsec(const char *name, const char *file,
   xsec_stepscale_vec.resize(nPars);
 
   for (int i = 0; i < nPars; i++) {
-    // Fill the prior central value
-	xsec_param_nom_a[i] = _fPreFitValue[i];
-
+    // Fill the nominal
+    xsec_param_nom_a[i] = (*xsec_param_nom)(i);
     // Fill the lower bound
-    xsec_param_lb_a[i]  = _fLowBound[i];
-
+    xsec_param_lb_a[i]  = (*xsec_param_lb)(i);
     // Fill the upper bound
-    xsec_param_ub_a[i]  = _fUpBound[i];
-    // Fill the prior uncertainty
-	xsec_param_prior_a[i]= _fError[i];
+    xsec_param_ub_a[i]  = (*xsec_param_ub)(i);
+    // Fill the prior
+    xsec_param_prior_a[i]=(*xsec_param_prior)(i);
     // Fill the names
-    xsec_param_names.push_back(_fNames[i]);
-
-    if(xsec_param_names[i].length() > PrintLength) PrintLength = xsec_param_names.back().length();
+    xsec_param_names.push_back(std::string(((TObjString*)objarr_name->At(i))->GetString()));
     // DB Fill the stepscales vector
-    xsec_stepscale_vec[i] = _fIndivStepScale[i];
+    xsec_stepscale_vec[i] = (*xsec_stepscale)(i);    
 
-    if(_fFlatPrior[i]){setEvalLikelihood(i, true);}
-    
     for (int j = 0; j < ncols; j++) {
       xsec_param_id_a[i][j] = (*xsec_param_id)(i,j);
     }
 
     // Also write the covarianceBase ones (grr, this is a bit of mess, try to clean it up)
-    _fUpBound[i] = xsec_param_ub_a[i];
+    _fLowBound[i] = xsec_param_ub_a[i];
     // Also write the covarianceBase ones (grr, this is a bit of mess, try to clean it up)
-    _fLowBound[i] = xsec_param_lb_a[i];
+    _fUpBound[i] = xsec_param_lb_a[i];
   } // end the for loop
 
-  //infile->Close();
-  //delete infile;
+
+  infile->Close();
+  delete infile;
+
   // Scan through the input parameters and find which are normalisation, which are splines, and so on
   ScanParameters();
 
-  std::cout << "Constructing instance of covarianceXsec" << std::endl;
   initParams(0.001);
+
   // Print
   Print();
 
@@ -745,7 +722,7 @@ void covarianceXsec::ScanParameters() {
 		XsecNorms4 tmp_xsec;
 		tmp_xsec.name=GetParameterName(i);
 
-		tmp_xsec.modes=_fNormModes[i];
+		tmp_xsec.modes=_fNormModes[norm_counter];
 
 		/*
 		// Set the mode of the normalisation parameter

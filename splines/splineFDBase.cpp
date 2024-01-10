@@ -489,6 +489,16 @@ int splineFDBase::CountNumberOfLoadedSplines(bool NonFlat, int Verbosity)
                   }
                   SampleCounter_All += 1;
                 }
+
+                else{
+                  std::cout << "WARNING: " << SampleName << " ; "
+                            << iOscChan << " ; "
+                            << iSyst << " ; "
+                            << iMode << " ; "
+                            << iVar1 << " ; "
+                            << iVar2 << " ; "
+                            << iVar3 << " is not a valid spline index!" << std::endl;
+                }
               }
             }
           }
@@ -535,6 +545,7 @@ void splineFDBase::PrepForReweight()
     for (unsigned int iSyst = 0; iSyst < indexvec[iSample][0].size(); iSyst++)
     { // Loop over systematics
       std::string SystName = SplineFileParPrefixNames[iSample][iSyst];
+      std::cout << "Syst " << iSyst << " -> " << SystName << std::endl;
       bool FoundSyst = false;
       for (unsigned int iFoundSyst = 0; iFoundSyst < UniqueSystNames.size(); iFoundSyst++)
       {

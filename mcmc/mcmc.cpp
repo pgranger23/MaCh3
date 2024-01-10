@@ -190,8 +190,9 @@ void mcmc::ProcessMCMC() {
 
   if (fitMan == NULL) return;
 
+
   // Process the MCMC
-  if (fitMan->raw()["MCMC"]["ProcessMCMC"].as<bool>()) {
+  if (fitMan->raw()["General"]["MCMC"]["ProcessMCMC"].as<bool>()) {
 
     // Make the processor
     MCMCProcessor Processor(std::string(outputFile->GetName()), false);

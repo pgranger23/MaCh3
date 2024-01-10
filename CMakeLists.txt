@@ -21,6 +21,11 @@ elseif(NOT DEFINED CMAKE_INSTALL_PREFIX)
   set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}")
 endif()
 
+if(NOT DEFINED CMAKE_BUILD_TYPE OR 
+    "${CMAKE_BUILD_TYPE}x" STREQUAL "x")
+  set(CMAKE_BUILD_TYPE Debug) #TODO: Change to release when OK
+endif()
+
 # Use the compilers found in the path
 find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
@@ -131,7 +136,7 @@ set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
 #Compile and link options (Should be in experiment project but copied in case CORE is built alone) 
 add_compile_options(-I${CUDA_SAMPLES}/common/inc)
-add_compile_options(-g -O3 -Wextra)
+# add_compile_options(-g -O3 -Wextra)
 
 #Compile and link options (Should be in experiment project but copied in case CORE is built alone) 
 add_compile_options(-g -Wextra)

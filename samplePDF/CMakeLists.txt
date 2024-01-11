@@ -2,13 +2,15 @@ set(SamplePDF_implementation_files
 	samplePDFBase.cpp 
 	samplePDFFDBase.cpp 
 	interfacePDFEbE.cpp 
-	Structs.cpp)
+	Structs.cpp
+  Selection.cpp)
 
 set(SamplePDF_header_files 
 	samplePDFBase.h
 	samplePDFFDBase.h
 	interfacePDFEbE.h
-	Structs.h )
+	Structs.h
+  Selection.h)
 
 if(NOT ${CPU_ONLY})
   list(APPEND SamplePDF_implementation_files probGpu.cu)

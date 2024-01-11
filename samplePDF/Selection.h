@@ -1,27 +1,23 @@
 #include <vector>
 #include <map>
+#include <string>
 
 class Selection
 {
 private:
-    int _cutVar;
-    std::vector<double> _cutValues;
-    std::string _selector_str;
-    Selector _selector;
-
+    //Making these private in the class so that noone tries to do hacky things...
     enum Selector{
         kBelow,
         kBetween,
         kAbove,
         kAmong
     };
+    static const std::map<std::string, Selector> str_to_selector;
 
-    static const std::map<std::string, Selector> str_to_selector = {
-        {"BELOW", kBelow}, //Including value
-        {"BETWEEN", kBetween}, //Excluding right of range
-        {"ABOVE", kAbove}, //Excluding value
-        {"AMONG", kAmong}
-    };
+    int _cutVar;
+    std::vector<double> _cutValues;
+    std::string _selector_str;
+    Selector _selector;
 
     Selector getSelector(std::string str);
 

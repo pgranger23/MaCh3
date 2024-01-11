@@ -1,4 +1,14 @@
 #include "Selection.h"
+#include <iostream>
+#include <algorithm>
+#include <cmath>
+
+const std::map<std::string, Selection::Selector> Selection::str_to_selector = {
+        {"BELOW", kBelow}, //Including value
+        {"BETWEEN", kBetween}, //Excluding right of range
+        {"ABOVE", kAbove}, //Excluding value
+        {"AMONG", kAmong}
+    };
 
 Selection::Selection(int cutVar, std::vector<double> cutValues, std::string selection)
 : _cutVar(cutVar), _cutValues(cutValues), _selector_str(selection)
@@ -31,11 +41,11 @@ Selection::~Selection()
 {
 }
 
-Selector Selection::getSelector(std::string str){
+Selection::Selector Selection::getSelector(std::string str){
     std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 
     if(str_to_selector.count(str) != 0){
-        return str_to_selector[str];
+        return str_to_selector.at(str);
     }
 
     std::cerr << "The provided selection rule: '" << str <<"' does not match any of the available selectors: [ ";
@@ -52,7 +62,7 @@ int Selection::getVar(){
 bool Selection::Passes(double value){
     if(_selector == kAmong){ //We assume that the selection is made amongs integers as double equality is not so obvious
         int intVal = std::round(value);
-        if(std::find_if(_cutValues.begin(), cutValues.end(), [](double &v){return std::round(v) == intVal;}) != _cutValues.end()){
+        if(std::find_if(_cutValues.begin(), _cutValues.end(), [intVal](double &v){return std::round(v) == intVal;}) != _cutValues.end()){
             return true;
         }
         return false;

@@ -218,27 +218,9 @@ void covarianceXsec::ParseYAML(const char* FileName)
 
   _fYAMLDoc = YAML::LoadFile(FileName);
   _fNumPar = _fYAMLDoc["Systematics"].size();
-  _fNames = std::vector<std::string>(_fNumPar);
-  _fGenerated = std::vector<double>(_fNumPar);
-  _fPreFitValue = std::vector<double>(_fNumPar);
-  _fError = std::vector<double>(_fNumPar);
-  _fLowBound = std::vector<double>(_fNumPar);
-  _fUpBound = std::vector<double>(_fNumPar);
-  _fIndivStepScale = std::vector<double>(_fNumPar);
-  _fFlatPrior = std::vector<bool>(_fNumPar);
-  _fDetID = std::vector<int>(_fNumPar);
   _fCovMatrix = new TMatrixDSym(_fNumPar);
-  _fParamType = std::vector<std::string>(_fNumPar);
-  _fDetString = std::vector<std::string>(_fNumPar);
 
   std::cout << "Found " << _fNumPar << " systematics in yaml" << std::endl;
-
-  //Vector of vectors of strings to contain potentially multiple variables that
-  //might be cut on
-  _fKinematicPars = std::vector<std::vector<std::string>>(_fNumPar);
-  //Vector of vector of ints to contain the lower and upper bounds of a cut
-  //for a particular kinematic variables
-  _fKinematicBounds = std::vector<std::vector<std::vector<double>>>(_fNumPar);
 
   int i=0;
 
@@ -246,66 +228,62 @@ void covarianceXsec::ParseYAML(const char* FileName)
   std::map<std::string, int> CorrNamesMap;
 
   for (auto const &param : _fYAMLDoc["Systematics"]) {
-     std::cout << param["Systematic"]["Names"]["ParameterName"].as<std::string>() << std::endl;
+    std::cout << param["Systematic"]["Names"]["ParameterName"].as<std::string>() << std::endl;
+     
+    std::string paramType = param["Systematic"]["Type"].as<std::string>();
+    XsecParam *xsecPar;
+    //DIFFERENT CLASS BASED ON TYPE
+    if(paramType == "Norm"){
+      xsecPar = new XSecNorm();
+      std::cout << "Reading in a Norm Parameter" << std::endl;
 
-     _fNames[i] = (param["Systematic"]["Names"]["ParameterName"].as<std::string>());
-     _fPreFitValue[i] = (param["Systematic"]["ParameterValues"]["PreFitValue"].as<double>());
-     _fGenerated[i] = (param["Systematic"]["ParameterValues"]["Generated"].as<double>());
+      if(param["Systematic"]["Mode"]){
+        xsecPar->SetModes(param["Systematic"]["Mode"].as<std::vector<int>>());
+      }
+    }
+    else if (paramType == "Spline")
+    {
+      XsecSpline *xsecSpline = new XsecSpline();
+      std::cout << "Reading in a Spline Parameter" << std::endl;
+      if (param["Systematic"]["SplineInformation"]["FDSplineName"]) {
+		    xsecSpline->SetFDSplineName(param["Systematic"]["SplineInformation"]["FDSplineName"].as<std::string>());
+	    }
 
-	 //ETA - a bit of a fudge but works
-	 std::vector<double> TempBoundsVec = param["Systematic"]["ParameterBounds"].as<std::vector<double>>();
-     _fLowBound[i] = TempBoundsVec[0];
-     _fUpBound[i] = TempBoundsVec[1];
+	   if (param["Systematic"]["SplineInformation"]["FDMode"]) {
+      _fFDSplineModes.push_back(param["Systematic"]["SplineInformation"]["FDMode"].as<std::vector<int>>());
+	   }
 
+	  //  if (param["Systematic"]["NDSplineName"]) {
+		//  _fNDSplineNames.push_back(param["Systematic"]["NDSplineName"].as<std::string>());
+	  //  }
+      xsecPar = xsecSpline;
+    }
+    else{
+      std::cerr << "Unknown systematic type '" << paramType << "'. Aborting!" << std::endl;
+      abort();
+    }
 
-     _fIndivStepScale[i] = (param["Systematic"]["StepScale"]["MCMC"].as<double>());
-     _fDetID[i] = (param["Systematic"]["DetID"].as<int>());
-     _fError[i] = (param["Systematic"]["Error"].as<double>());
-	 _fParamType[i] = (param["Systematic"]["Type"].as<std::string>());
+    xsecPar->SetName(param["Systematic"]["Names"]["ParameterName"].as<std::string>());
+    xsecPar->SetPreFitValue(param["Systematic"]["ParameterValues"]["PreFitValue"].as<double>());
+    xsecPar->SetGenerated(param["Systematic"]["ParameterValues"]["Generated"].as<double>());
+
+    std::vector<double> TempBoundsVec = param["Systematic"]["ParameterBounds"].as<std::vector<double>>();
+    xsecPar->SetBound(TempBoundsVec[0], TempBoundsVec[1]);
+    xsecPar->SetIndivStepScale(param["Systematic"]["StepScale"]["MCMC"].as<double>());
+    xsecPar->SetDetID(param["Systematic"]["DetID"].as<int>());
+    xsecPar->SetError(param["Systematic"]["Error"].as<double>());
 
 	 if (param["Systematic"]["FlatPrior"]) {
-	   _fFlatPrior[i] = param["Systematic"]["FlatPrior"].as<bool>();
+	   xsecPar->SetFlatPrior(["Systematic"]["FlatPrior"].as<bool>());
 	 } else {
-	   _fFlatPrior[i] = false;
+	   xsecPar->SetFlatPrior(false);
 	 }
 
 	 //Fill the map to get the correlations later as well
      CorrNamesMap[param["Systematic"]["Names"]["ParameterName"].as<std::string>()]=i;
 
-	 std::string ParamType = param["Systematic"]["Type"].as<std::string>();
 	 int nFDSplines;
 	 //Now load in varaibles for spline systematics only
-	 if (ParamType.find("Spline") != std::string::npos) {
-	   std::cout << "Reading in a Spline Parameter" << std::endl;
-
-	   if (param["Systematic"]["SplineInformation"]["FDSplineName"]) {
-		 _fFDSplineNames.push_back(param["Systematic"]["SplineInformation"]["FDSplineName"].as<std::string>());
-		 nFDSplines++;
-	   }
-
-	   if (param["Systematic"]["SplineInformation"]["FDMode"]) {
-		 std::cout << "Pushing back _fFDSplineModes for param " << i << std::endl;
-		 _fFDSplineModes.push_back(param["Systematic"]["SplineInformation"]["FDMode"].as<std::vector<int>>());
-		 std::cout << "_fFDSplineModes is of size " << _fFDSplineModes.size() << std::endl;
-		 std::cout << "_fFDSplineModes[0] is of size " << _fFDSplineModes[0].size() << std::endl;
-	   }
-
-	   if (param["Systematic"]["NDSplineName"]) {
-		 _fNDSplineNames.push_back(param["Systematic"]["NDSplineName"].as<std::string>());
-	   }
-
-	 } else if(param["Systematic"]["Type"].as<std::string>() == "Norm") {
-	   std::cout << "Norm parameter" << std::endl;
-
-	   //First check to see if we have specified a mode
-	   std::vector<int> DummyModeVec;
-	   if(param["Systematic"]["Mode"]){
-		 _fNormModes.push_back(param["Systematic"]["Mode"].as<std::vector<int>>());
-	   } else{
-		 //Has to be of size 0 to mean apply to all
-		 _fNormModes.push_back(DummyModeVec);
-	   }
-	 }
 
 	 int NumKinematicCuts = 0;
 	 if(param["Systematic"]["KinematicCuts"]){
@@ -313,8 +291,7 @@ void covarianceXsec::ParseYAML(const char* FileName)
 	   NumKinematicCuts = param["Systematic"]["KinematicCuts"].size();
 	   std::cout << "Number of Kinematic cuts is " << NumKinematicCuts << std::endl;
 
-	   std::vector<std::string> TempKinematicStrings;
-	   std::vector<std::vector<double>> TempKinematicBounds;
+     std::vector<Selection> temp_selections;
 	   //First element of TempKinematicBounds is always -999, and size is then 3
 
 	   for(int KinVar_i = 0 ; KinVar_i < NumKinematicCuts ; ++KinVar_i){ 
@@ -322,14 +299,29 @@ void covarianceXsec::ParseYAML(const char* FileName)
 		 //This is a bit messy, Kinematic cuts is a list of maps
 		 //The for loop h
 		 for (YAML::const_iterator it=param["Systematic"]["KinematicCuts"][KinVar_i].begin();it!=param["Systematic"]["KinematicCuts"][KinVar_i].end();++it) {
-		   TempKinematicStrings.push_back(it->first.as<std::string>());
-		   TempKinematicBounds.push_back(it->second.as<std::vector<double>>());
-		   std::vector<double> bounds = it->second.as<std::vector<double>>();
+		   std::string cutName = it->first.as<std::string>();
+       std::vector<double> cutValues;
+       std::string selector;
+
+        if(it->second.IsSequence()){ //Keep the previous beahious assuming a kinematic cut within a range of two provided values
+          cutValues = it->second.as<std::vector<double>>();
+          selector = "BETWEEN";
+        }
+        else if(it->second.IsMap()){ //New behaviour with definition of a Selector type and values as a map
+          cutValues = it->second["Values"].as<std::vector<double>>();
+          selector = it->second["Selector"].as<std::string>();
+        }
+        else{
+          std::cerr << "Error parsing the Kinematic cuts sections. Aborting." << std::endl;
+          abort();
+        }
+
+      temp_selections.emplace_back(Selection(cutName, cutValues, selector));
+
 		 }
 	   }
 
-	   _fKinematicPars.at(i) = TempKinematicStrings;
-	   _fKinematicBounds.at(i) = TempKinematicBounds;	   
+	   xsecPar->SetSelections(temp_selections);  
 	 }
        
 	 //Also loop through the correlations
@@ -558,7 +550,7 @@ const std::vector<XsecNorms4> covarianceXsec::GetNormParsFromDetID(int DetID) {
 		////////////////////
 
 		///
-		if(_fKinematicPars.at(i).size() > 0){
+		if(_fKinematicSelections.at(i).size() > 0){
 		  HasKinBounds = true;
 		}
 

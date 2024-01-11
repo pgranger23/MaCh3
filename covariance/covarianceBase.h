@@ -23,6 +23,7 @@
 // MaCh3 includes
 #include "samplePDF/Structs.h"
 #include "throwParms/ThrowParms.h"
+#include "samplePDF/Selection.h"
 
 // Don't forget yaml!
 #include "yaml-cpp/yaml.h"
@@ -396,8 +397,9 @@ class covarianceBase {
   std::vector<std::vector<int>> _fFDSplineModes;
 
   //Information to be able to apply generic cuts
-  std::vector<std::vector<std::string>> _fKinematicPars;
-  std::vector<std::vector<std::vector<double>>> _fKinematicBounds;
+  std::vector<std::vector<Selection>> _fKinematicSelections;
+  // std::vector<std::vector<std::string>> _fKinematicPars;
+  // std::vector<std::vector<std::vector<double>>> _fKinematicBounds;
 
   //Unity for null systs to point back to
   const double Unity = 1.0;

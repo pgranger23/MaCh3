@@ -14,7 +14,7 @@ private:
     };
     static const std::map<std::string, Selector> str_to_selector;
 
-    int _cutVar;
+    std::string _cutVar;
     std::vector<double> _cutValues;
     std::string _selector_str;
     Selector _selector;
@@ -22,8 +22,8 @@ private:
     Selector getSelector(std::string str);
 
 public:
-    Selection(int cutVar, std::vector<double> cutValues, std::string selection);
+    Selection(std::string cutVar, std::vector<double> cutValues, std::string selection);
     ~Selection();
-    int getVar();
-    bool Passes(double value);
+    std::string getVar() const;
+    bool Passes(double value) const;
 };

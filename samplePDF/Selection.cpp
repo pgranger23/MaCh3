@@ -10,7 +10,7 @@ const std::map<std::string, Selection::Selector> Selection::str_to_selector = {
         {"AMONG", kAmong}
     };
 
-Selection::Selection(int cutVar, std::vector<double> cutValues, std::string selection)
+Selection::Selection(std::string cutVar, std::vector<double> cutValues, std::string selection)
 : _cutVar(cutVar), _cutValues(cutValues), _selector_str(selection)
 {
     _selector = getSelector(_selector_str);
@@ -56,13 +56,13 @@ Selection::Selector Selection::getSelector(std::string str){
     abort();
 }
 
-int Selection::getVar(){
+std::string Selection::getVar() const{
     return _cutVar;
 }
-bool Selection::Passes(double value){
+bool Selection::Passes(double value) const{
     if(_selector == kAmong){ //We assume that the selection is made amongs integers as double equality is not so obvious
         int intVal = std::round(value);
-        if(std::find_if(_cutValues.begin(), _cutValues.end(), [intVal](double &v){return std::round(v) == intVal;}) != _cutValues.end()){
+        if(std::find_if(_cutValues.begin(), _cutValues.end(), [intVal](double const &v){return std::round(v) == intVal;}) != _cutValues.end()){
             return true;
         }
         return false;

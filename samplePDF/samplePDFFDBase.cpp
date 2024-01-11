@@ -96,6 +96,20 @@ void samplePDFFDBase::UseBinnedOscReweighting(bool ans, int nbins, double *osc_b
   return;
 }
 
+// bool samplePDFFDBase::IsEventSelected(int iSample, int iEvent) {
+  
+//   double Val;
+
+//   for(const Selection& sel : _selections) {
+//     Val = ReturnKinematicParameter(sel.getVar(), iSample, iEvent);
+//     if(! sel.Passes(Val)){
+//       return false;
+//     }
+//   }
+
+//   return true;
+// }
+
 bool samplePDFFDBase::IsEventSelected(int iSample, int iEvent) {
   
   double Val;

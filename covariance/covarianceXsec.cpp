@@ -240,6 +240,9 @@ void covarianceXsec::ParseYAML(const char* FileName)
   //for a particular kinematic variables
   _fKinematicBounds = std::vector<std::vector<std::vector<double>>>(_fNumPar);
 
+  _fDetectedFlavourSelections = std::vector<std::vector<int>>(_fNumPar);
+  _fGeneratedFlavourSelections = std::vector<std::vector<int>>(_fNumPar);
+
   int i=0;
 
   std::vector<std::map<std::string,double>> Correlations(_fNumPar);
@@ -342,6 +345,15 @@ void covarianceXsec::ParseYAML(const char* FileName)
 		 }
 	   }
 	 }
+
+   //Check if there is any flavour selection for this syst to apply to
+   if(param["Systematic"]["DetectedFlavourSelection"]){
+      _fDetectedFlavourSelections[i] = param["Systematic"]["DetectedFlavourSelection"].as<std::vector<int>>();
+   }
+   if(param["Systematic"]["GeneratedFlavourSelection"]){
+      _fGeneratedFlavourSelections[i] = param["Systematic"]["GeneratedFlavourSelection"].as<std::vector<int>>();
+   }
+
 	 i++;
   }
   
@@ -574,6 +586,9 @@ const std::vector<XsecNorms4> covarianceXsec::GetNormParsFromDetID(int DetID) {
 
 		norm.hasKinBounds=HasKinBounds;
 		//End of kinematic bound checking
+
+    norm.pdgs = _fDetectedFlavourSelections[i];
+    norm.preoscpdgs = _fGeneratedFlavourSelections[i];
 
 		// Set the global parameter index of the normalisation parameter
 		norm.index=i;

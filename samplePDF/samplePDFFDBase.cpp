@@ -786,7 +786,7 @@ void samplePDFFDBase::CalcXsecNormsBins(int iSample){
 			if ((*it).horncurrents.at(ihorncurrent)==-1 && GetIsRHC()) {HornCurrentMatch=true;}
 		  }
 		}
-		if (!HornCurrentMatch) {continue;}
+		if (!HornCurrentMatch) {continue;}*/
 
 		//Check on the oscillated neutrino flavour
 		bool FlavMatch = false;
@@ -802,7 +802,7 @@ void samplePDFFDBase::CalcXsecNormsBins(int iSample){
 		  }
 		}
         if (!FlavMatch) {continue;}
-
+    
 		//Check on the flavour that the neutrino was produced as
 		//i.e. before oscillations
 		bool ProdFlavMatch=false;
@@ -822,7 +822,6 @@ void samplePDFFDBase::CalcXsecNormsBins(int iSample){
 		}
 		if (!ProdFlavMatch) {continue;}	
 
-		*/
 		//Now check that the mode of an interaction matches with the normalisation parameters
 		bool ModeMatch=false;
 		//If no mode specified then apply to all modes

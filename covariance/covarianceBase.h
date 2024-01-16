@@ -398,6 +398,8 @@ class covarianceBase {
   //Information to be able to apply generic cuts
   std::vector<std::vector<std::string>> _fKinematicPars;
   std::vector<std::vector<std::vector<double>>> _fKinematicBounds;
+  std::vector<std::vector<int>> _fDetectedFlavourSelections;
+  std::vector<std::vector<int>> _fGeneratedFlavourSelections;
 
   //Unity for null systs to point back to
   const double Unity = 1.0;

@@ -131,11 +131,13 @@ public:
   /// @brief ETA - a function to setup and pass values to functional parameters where you need to pass a value to some custom reweight calc or engine
   virtual void PrepFunctionalParameters(){};
   /// @brief ETA - generic function applying shifts
-  virtual void applyShifts(int iSample, int iEvent){(void) iSample; (void) iEvent;};
+  virtual void applyShifts(){};
+  virtual void applyShifts(int iSample){};
   /// @brief DB Function which determines if an event is selected, where Selection double looks like {{ND280KinematicTypes Var1, douuble LowBound}
   bool IsEventSelected(const int iSample, const int iEvent);
   bool IsEventSelected(const std::vector<std::string>& ParameterStr, const int iSample, const int iEvent);
   bool IsEventSelected(const std::vector<std::string>& ParameterStr, const std::vector<std::vector<double>> &SelectionCuts, const int iSample, const int iEvent);
+  void ApplyEventSelections(std::vector< std::string > SelectionStr, int iSample);
 
   /// @brief Check whether a normalisation systematic affects an event or not
   void CalcXsecNormsBins(int iSample);
@@ -145,6 +147,12 @@ public:
   double CalcXsecWeightNorm(const int iSample, const int iEvent);
   /// @brief Virtual so this can be over-riden in an experiment derived class
   virtual double CalcXsecWeightFunc(int iSample, int iEvent){(void)iSample; (void)iEvent; return 1.0;};
+  /// @brief Calculate the spline weights
+  void ApplyXsecWeightSpline(int iSample);
+  /// @brief Calculate the norm weights
+  void ApplyXsecWeightNorm(int iSample);
+  /// @brief Calculate the func weights
+  void ApplyXsecWeightFunc(int iSample);
 
   virtual double ReturnKinematicParameter(std::string KinematicParamter, int iSample, int iEvent) = 0;
   virtual double ReturnKinematicParameter(double KinematicVariable, int iSample, int iEvent) = 0;
@@ -164,11 +172,6 @@ public:
   void fill1DHist();
   void fill2DHist();
 
-  /// @brief DB Nice new multi-threaded function which calculates the event weights and fills the relevant bins of an array
-#ifdef MULTITHREAD
-  /// @brief fills the samplePDFFD_array vector with the weight calculated from reweighting but multithreaded
-  void fillArray_MP();
-#endif
   /// @brief fills the samplePDFFD_array vector with the weight calculated from reweighting
   void fillArray();
 

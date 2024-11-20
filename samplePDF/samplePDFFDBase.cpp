@@ -441,26 +441,6 @@ void samplePDFFDBase::fillArray() {
     #pragma omp barrier //All the previous operations have nowait as they are independant, but we now need to synchronize.
     #pragma omp for
     for(uint iEvent = 0; iEvent<MCSamples[iSample].nEvents;iEvent++){
-      //DB Set oscillation weights for NC events to 1.0
-      //DB Another speedup - Why bother storing NC signal events and calculating the oscillation weights when we just throw them out anyway? Therefore they are skipped in setupMC
-      //
-      //LW Checking if NC event is signal (oscillated or not), if yes: osc_w = 0 || if no: osc_w = 1.0
-
-        if (MCSamples[iSample].isNC[iEvent] && MCSamples[iSample].signal) { //DB Abstract check on MaCh3Modes to determine which apply to neutral current
-        MCSamples[iSample].osc_w[iEvent] = 0.0;
-        continue;
-        }
-
-      //ETA - I need to check that this doesn't cause a problem for atmospherics and or tau samples
-        if (MCSamples[iSample].isNC[iEvent] && !MCSamples[iSample].signal) { //DB Abstract check on MaCh3Modes to determine which apply to neutral current
-        MCSamples[iSample].osc_w[iEvent] = 1.0;
-        }
-      //DB Set oscillation weights for NC events to 1.0
-      //DB Another speedup - Why bother storing NC signal events and calculating the oscillation weights when we just throw them out anyway? Therefore they are skipped in setupSKMC
-      if (MCSamples[iSample].isNC[iEvent]) { //DB Abstract check on MaCh3Modes to determine which apply to neutral current
-      MCSamples[iSample].osc_w[iEvent] = 1.0;	
-      }
-      
       //DB Total weight
 	    double totalweight = GetEventWeight(iSample,iEvent);
       //DB Catch negative weights and skip any event with a negative event
@@ -573,7 +553,7 @@ void samplePDFFDBase::ApplyXsecWeightSpline(int iSample) {
       xsec_weights[iEvent] *= *(MCSamples[iSample].xsec_spline_pointers[iEvent][iSpline]);
     }
 
-    xsec_weights[iEvent] = max(0.d, xsec_weights[iEvent]);
+    xsec_weights[iEvent] = std::max(0.d, xsec_weights[iEvent]);
   }
 }
 
@@ -608,7 +588,7 @@ void samplePDFFDBase::ApplyXsecWeightNorm(int iSample) {
       xsec_weights[iEvent] *= *(MCSamples[iSample].xsec_norm_pointers[iEvent][iParam]);
     }
 
-    xsec_weights[iEvent] = max(0.d, xsec_weights[iEvent]);
+    xsec_weights[iEvent] = std::max(0.d, xsec_weights[iEvent]);
   }
 }
 

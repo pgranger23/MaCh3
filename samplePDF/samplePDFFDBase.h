@@ -156,6 +156,7 @@ public:
 
   virtual double ReturnKinematicParameter(std::string KinematicParamter, int iSample, int iEvent) = 0;
   virtual double ReturnKinematicParameter(double KinematicVariable, int iSample, int iEvent) = 0;
+  virtual double* ReturnKinematicParameter(std::string KinematicParamter, int iSample) = 0;
   virtual std::vector<double> ReturnKinematicParameterBinning(std::string KinematicParameter) = 0; //Returns binning for parameter Var
   virtual const double* GetPointerToKinematicParameter(std::string KinematicParamter, int iSample, int iEvent) = 0; 
   virtual const double* GetPointerToKinematicParameter(double KinematicVariable, int iSample, int iEvent) = 0;

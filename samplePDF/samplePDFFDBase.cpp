@@ -350,7 +350,7 @@ bool samplePDFFDBase::IsEventSelected(const std::vector< std::string >& Paramete
 //Similar to the above functions but applies to the whole sample
 void samplePDFFDBase::ApplyEventSelections(std::vector< std::string > SelectionStr, int iSample){
   for (unsigned int iSelection=0;iSelection<SelectionStr.size();iSelection++) {
-	  double* KineArr = ReturnKinematicParameter(SelectionStr[iSelection], iSample);
+	  double* KineArr = GetPointerToKinematicParameter(SelectionStr[iSelection], iSample, 0);
     double* xsec_weights = MCSamples[iSample].xsec_w;
     #pragma omp for simd nowait
     for(uint iEvent = 0; iEvent < MCSamples[iSample].nEvents; iEvent++){

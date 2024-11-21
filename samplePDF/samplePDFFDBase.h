@@ -131,8 +131,8 @@ public:
   /// @brief ETA - a function to setup and pass values to functional parameters where you need to pass a value to some custom reweight calc or engine
   virtual void PrepFunctionalParameters(){};
   /// @brief ETA - generic function applying shifts
-  virtual void applyShifts(){};
-  virtual void applyShifts(int iSample){};
+  virtual void applyShifts(int iSample, int iEvent){(void) iSample; (void) iEvent;};
+  void ApplyShifts(int iSample);
   /// @brief DB Function which determines if an event is selected, where Selection double looks like {{ND280KinematicTypes Var1, douuble LowBound}
   bool IsEventSelected(const int iSample, const int iEvent);
   bool IsEventSelected(const std::vector<std::string>& ParameterStr, const int iSample, const int iEvent);

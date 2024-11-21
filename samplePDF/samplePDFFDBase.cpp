@@ -368,6 +368,12 @@ void samplePDFFDBase::ApplyXsecWeightFunc(int iSample){
   }
 }
 
+void samplePDFFDBase::ApplyShifts(int iSample) {
+  #pragma omp for nowait
+  for(uint iEvent = 0; iEvent < MCSamples[iSample].nEvents; iEvent++){
+    applyShifts(iSample, iEvent);
+  }
+}
 
 void samplePDFFDBase::reweight() // Reweight function - Depending on Osc Calculator this function uses different CalcOsc functions
 {
@@ -428,12 +434,16 @@ void samplePDFFDBase::fillArray() {
   
   for (unsigned int iSample=0;iSample<MCSamples.size();iSample++) {
 
-    //Reset xsec_weights
-    std::fill(MCSamples[iSample].xsec_w, MCSamples[iSample].xsec_w + MCSamples[iSample].nEvents, 1.0);
-
-    applyShifts(iSample);
-    ApplyEventSelections(SelectionStr, iSample);
     
+
+    #pragma omp single
+    {
+      //Reset xsec_weights
+      std::fill(MCSamples[iSample].xsec_w, MCSamples[iSample].xsec_w + MCSamples[iSample].nEvents, 1.0);
+    }
+
+    ApplyShifts(iSample);
+    ApplyEventSelections(SelectionStr, iSample);
     ApplyXsecWeightSpline(iSample); //TODO: Add a check if we actually have splines
     ApplyXsecWeightNorm(iSample);
     ApplyXsecWeightFunc(iSample);
@@ -487,7 +497,9 @@ void samplePDFFDBase::fillArray() {
       //DB Fill relevant part of thread array
       if (XBinToFill != -1 && YBinToFill != -1) {
 		//std::cout << "Filling samplePDFFD_array at YBin: " << YBinToFill << " and XBin: " << XBinToFill << std::endl;
+        #pragma omp atomic
         local_samplePDFFD_array[YBinToFill*nXBins + XBinToFill] += totalweight;
+        #pragma omp atomic
         local_samplePDFFD_array_w2[YBinToFill*nXBins + XBinToFill] += totalweight*totalweight;
       }
     }
@@ -546,14 +558,14 @@ void samplePDFFDBase::ApplyXsecWeightSpline(int iSample) {
 
   double* xsec_weights = MCSamples[iSample].xsec_w;
   #pragma omp for nowait
-  // #pragma omp single
   for(uint iEvent = 0; iEvent < MCSamples[iSample].nEvents; iEvent++){
+    double event_xsec_weight = xsec_weights[iEvent];
+    #pragma omp simd reduction(*:event_xsec_weight)
     for (int iSpline=0;iSpline<MCSamples[iSample].nxsec_spline_pointers[iEvent];iSpline++) {
-      //TODO try to see if it is possible to invert the loop order
-      xsec_weights[iEvent] *= *(MCSamples[iSample].xsec_spline_pointers[iEvent][iSpline]);
+      event_xsec_weight *= *(MCSamples[iSample].xsec_spline_pointers[iEvent][iSpline]);
     }
 
-    xsec_weights[iEvent] = std::max(0.d, xsec_weights[iEvent]);
+    xsec_weights[iEvent] = std::max(0.d, event_xsec_weight);
   }
 }
 
@@ -581,14 +593,14 @@ void samplePDFFDBase::ApplyXsecWeightNorm(int iSample) {
 
   double* xsec_weights = MCSamples[iSample].xsec_w;
   #pragma omp for nowait
-  // #pragma omp single
   for(uint iEvent = 0; iEvent < MCSamples[iSample].nEvents; iEvent++){
+    double event_xsec_weight = xsec_weights[iEvent];
+    #pragma omp simd reduction(*:event_xsec_weight)
     for (int iParam=0;iParam<MCSamples[iSample].nxsec_norm_pointers[iEvent];iParam++) {
-      //TODO try to see if it is possible to invert the loop order
-      xsec_weights[iEvent] *= *(MCSamples[iSample].xsec_norm_pointers[iEvent][iParam]);
+      event_xsec_weight *= *(MCSamples[iSample].xsec_norm_pointers[iEvent][iParam]);
     }
 
-    xsec_weights[iEvent] = std::max(0.d, xsec_weights[iEvent]);
+    xsec_weights[iEvent] = std::max(0.d, event_xsec_weight);
   }
 }
 
@@ -1350,7 +1362,7 @@ double samplePDFFDBase::GetLikelihood() {
   double negLogL = 0.;
 
 #ifdef MULTITHREAD
-#pragma omp parallel for reduction(+:negLogL) private(xBin, yBin)
+//#pragma omp parallel for reduction(+:negLogL) private(xBin, yBin)
 #endif
   for (xBin = 0; xBin < nXBins; xBin++) 
   {

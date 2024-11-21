@@ -90,6 +90,7 @@ target_compile_options(MaCh3CompilerOptions INTERFACE
     -Wformat=2              # Warn on security issues around functions that format output (ie printf)
     -Wunused                # Warn on anything being unused
     -Wredundant-decls       # Warn about multiple declarations of the same entity. Useful for code cleanup.
+    -fno-omit-frame-pointer # Don't omit frame pointers
     #-Wstrict-aliasing=2    # Helps detect potential aliasing issues that could lead to undefined behavior.
     #-Wuseless-cast         # Warn if you perform a cast to the same type (only in GCC >= 4.8)
     #-Wpadded               # Warn when padding is added to a structure or class for alignment
